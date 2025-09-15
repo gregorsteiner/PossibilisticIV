@@ -1,5 +1,6 @@
 using Distributions, LinearAlgebra, Random
 using Optim
+using Plots
 
 # reduced-form likelihood function (on log scale)
 function ll_rf(Γ, Ψ, W, Z)
@@ -46,12 +47,16 @@ W = rand(MatrixNormal(Z[:, :] * [γ_1 γ_2], I(n), inv(Ψ)))
 plot(β -> exp(f_s([0.0], β, W, Z)), label = "α = 0")
 plot!(β -> exp(f_s([0.5], β, W, Z)), label = "α = 1/2")
 plot!(β -> exp(f_s([-0.5], β, W, Z)), label = "α = -1/2")
-xlims!(-1.5, 1.5)
+xlims!(-1.2, 1.2)
 
 # plot joint posterior possibility of α and β
-h(a, b) = exp(f_s([a], b, W, Z))
+h(a, b) = f_s([a], b, W, Z)
 aa = -1:0.1:1
 bb = -1:0.1:1
 zz = @. h(aa', bb)
 
-plot3d(aa, bb, zz, st = :surface, xlabel = "α", ylabel = "β")
+# 3d plot
+plot(aa, bb, zz, st = :surface, xlabel = "α", ylabel = "β", zlabel ="Posterior Possibility (log)")
+
+# contour plot
+plot(aa, bb, zz, xlabel = "α", ylabel = "β", zlabel ="Posterior Possibility (log)")
