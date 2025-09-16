@@ -4,53 +4,62 @@ using Plots
 
 # reduced-form likelihood function (on log scale)
 function ll_rf(Γ, Ψ, W, Z)
-    ll = -1/2 * tr( Ψ * (W - Z * Γ)' * (W - Z * Γ))
+    ll = -1/2 * tr( inv(Ψ) * (W - Z * Γ)' * (W - Z * Γ))
     return ll
 end
 
 # reduced-form posterior possibility
 function pp_rf(Γ, Ψ, W, Z)
     Γ_ml = inv(Z'Z) * Z'W
-    return ll_rf(Γ, Ψ, W, Z) - ll_rf(Γ_ml, Ψ, W, Z)
+    Ψ_ml = (W - Z * Γ_ml)' * (W - Z * Γ_ml) / size(W, 1)
+    return ll_rf(Γ, Ψ, W, Z) - ll_rf(Γ_ml, Ψ_ml, W, Z)
 end
 
 
 # optimise constrained function
-function g(γ_2, α, β, W, Z)
+function g(γ_2, α, β, Σ, W, Z)
     γ_1 = β * γ_2 + α
+    A = [1.0 β; 0.0 1.0]
+    Ψ = A * Σ * A'
     return -pp_rf([γ_1 γ_2], Ψ, W, Z)
 end
 
 # compute posterior possibility for the structural parameters
-function f_s(α, β, W, Z)
-    res = optimize(x -> g(x, α, β, W, Z), α)
+function f_s(α, β, Σ, W, Z)
+    res = optimize(x -> g(x, α, β, Σ, W, Z), α) # use alpha as the initial value for γ_2
     γ_2_min = Optim.minimizer(res)
     γ_1_min = β * γ_2_min + α
     return pp_rf([γ_1_min γ_2_min], Ψ, W, Z)
 end
 
 # simulate data
-α, β = ([0.0], 0.1)
+α, β = ([0.0], 1)
 Σ = [1.0 0.5; 0.5 1.0]
 
-Ψ = inv([1.0 β; 0.0 1.0] * Σ * [1.0 β; 0.0 1.0]')
+Ψ = [1.0 β; 0.0 1.0] * Σ * [1.0 β; 0.0 1.0]'
 γ_2 = [1.0]
 γ_1 = β * γ_2 + α
 
 n = 100
 Random.seed!(42)
 Z = rand(n)
-W = rand(MatrixNormal(Z[:, :] * [γ_1 γ_2], I(n), inv(Ψ)))
+W = rand(MatrixNormal(Z[:, :] * [γ_1 γ_2], I(n), Ψ))
+
 
 
 # plot marginal posterior of β for diferent values of α
-plot(β -> exp(f_s([0.0], β, W, Z)), label = "α = 0")
-plot!(β -> exp(f_s([0.5], β, W, Z)), label = "α = 1/2")
-plot!(β -> exp(f_s([-0.5], β, W, Z)), label = "α = -1/2")
-xlims!(-1.2, 1.2)
+plot(β -> exp(f_s([0.0], β, Σ, W, Z)), label = "α = 0")
+plot!(β -> exp(f_s([0.5], β, Σ, W, Z)), label = "α = 1/2")
+plot!(β -> exp(f_s([-0.5], β, Σ, W, Z)), label = "α = -1/2")
+xlims!(-0.5, 2.0)
+
+# plot for different values of the covariance
+plot(β -> exp(f_s([0.0], β, Σ, W, Z)), label = "True covariance")
+plot!(β -> exp(f_s([0.0], β, [1.0 0.9; 0.9 1.0], W, Z)), label = "More diffuse")
+xlims!(0.5, 1.5)
 
 # plot joint posterior possibility of α and β
-h(a, b) = f_s([a], b, W, Z)
+h(a, b) = exp(f_s([a], b, Σ, W, Z))
 aa = -1:0.1:1
 bb = -1:0.1:1
 zz = @. h(aa', bb)
