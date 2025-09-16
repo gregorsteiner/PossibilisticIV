@@ -9,27 +9,25 @@ function ll_rf(Γ, Ψ, W, Z)
 end
 
 # reduced-form posterior possibility
-function pp_rf(Γ, Ψ, W, Z)
+function pp_rf(Γ, W, Z)
     Γ_ml = inv(Z'Z) * Z'W
     Ψ_ml = (W - Z * Γ_ml)' * (W - Z * Γ_ml) / size(W, 1)
-    return ll_rf(Γ, Ψ, W, Z) - ll_rf(Γ_ml, Ψ_ml, W, Z)
+    return ll_rf(Γ, Ψ_ml, W, Z) - ll_rf(Γ_ml, Ψ_ml, W, Z)
 end
 
 
 # optimise constrained function
-function g(γ_2, α, β, Σ, W, Z)
+function g(γ_2, α, β, W, Z)
     γ_1 = β * γ_2 + α
-    A = [1.0 β; 0.0 1.0]
-    Ψ = A * Σ * A'
-    return -pp_rf([γ_1 γ_2], Ψ, W, Z)
+    return -pp_rf([γ_1 γ_2], W, Z)
 end
 
 # compute posterior possibility for the structural parameters
-function f_s(α, β, Σ, W, Z)
-    res = optimize(x -> g(x, α, β, Σ, W, Z), α) # use alpha as the initial value for γ_2
+function f_s(α, β, W, Z)
+    res = optimize(x -> g(x, α, β, W, Z), α) # use alpha as the initial value for γ_2
     γ_2_min = Optim.minimizer(res)
     γ_1_min = β * γ_2_min + α
-    return pp_rf([γ_1_min γ_2_min], Ψ, W, Z)
+    return pp_rf([γ_1_min γ_2_min], W, Z)
 end
 
 # simulate data
@@ -48,20 +46,16 @@ W = rand(MatrixNormal(Z[:, :] * [γ_1 γ_2], I(n), Ψ))
 
 
 # plot marginal posterior of β for diferent values of α
-plot(β -> exp(f_s([0.0], β, Σ, W, Z)), label = "α = 0")
-plot!(β -> exp(f_s([0.5], β, Σ, W, Z)), label = "α = 1/2")
-plot!(β -> exp(f_s([-0.5], β, Σ, W, Z)), label = "α = -1/2")
+plot(β -> exp(f_s([0.0], β, W, Z)), label = "α = 0")
+plot!(β -> exp(f_s([0.5], β, W, Z)), label = "α = 1/2")
+plot!(β -> exp(f_s([-0.5], β, W, Z)), label = "α = -1/2")
 xlims!(-0.5, 2.0)
 
-# plot for different values of the covariance
-plot(β -> exp(f_s([0.0], β, Σ, W, Z)), label = "True covariance")
-plot!(β -> exp(f_s([0.0], β, [1.0 0.9; 0.9 1.0], W, Z)), label = "More diffuse")
-xlims!(0.5, 1.5)
 
 # plot joint posterior possibility of α and β
-h(a, b) = exp(f_s([a], b, Σ, W, Z))
+h(a, b) = exp(f_s([a], b, W, Z))
 aa = -1:0.1:1
-bb = -1:0.1:1
+bb = -1:0.1:2
 zz = @. h(aa', bb)
 
 # 3d plot
@@ -69,3 +63,6 @@ plot(aa, bb, zz, st = :surface, xlabel = "α", ylabel = "β", zlabel ="Posterior
 
 # contour plot
 plot(aa, bb, zz, xlabel = "α", ylabel = "β", zlabel ="Posterior Possibility (log)")
+
+
+
