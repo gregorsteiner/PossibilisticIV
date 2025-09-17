@@ -8,26 +8,21 @@ function ll_rf(Γ, Ψ, W, Z)
     return ll
 end
 
-# reduced-form posterior possibility
-function pp_rf(Γ, W, Z)
+
+# analytic posterior possibility
+function f_str(α, β, W, Z)
+    # Compute ML estimates
     Γ_ml = inv(Z'Z) * Z'W
-    Ψ_ml = (W - Z * Γ_ml)' * (W - Z * Γ_ml) / size(W, 1)
+    # Plug in ML estimate for Ψ
+    # We could also explicitly model Σ and then Ψ is determinitic given Σ and β
+    Ψ_ml = (W - Z * Γ_ml)' * (W - Z * Γ_ml) / size(W, 1) 
+
+    # Compute optimal Γ given the constraint
+    σ11 = dot([1.0 -β], Ψ_ml, [1.0 ; -β])
+    Γ = Γ_ml + (1/σ11) * (α - [Γ_ml * [1.0; -β]]) * [1.0 -β] * Ψ_ml
+
+    # Return relative likelihood at this point
     return ll_rf(Γ, Ψ_ml, W, Z) - ll_rf(Γ_ml, Ψ_ml, W, Z)
-end
-
-
-# optimise constrained function
-function g(γ_2, α, β, W, Z)
-    γ_1 = β * γ_2 + α
-    return -pp_rf([γ_1 γ_2], W, Z)
-end
-
-# compute posterior possibility for the structural parameters
-function f_s(α, β, W, Z)
-    res = optimize(x -> g(x, α, β, W, Z), α) # use alpha as the initial value for γ_2
-    γ_2_min = Optim.minimizer(res)
-    γ_1_min = β * γ_2_min + α
-    return pp_rf([γ_1_min γ_2_min], W, Z)
 end
 
 # simulate data
@@ -38,24 +33,24 @@ end
 γ_2 = [1.0]
 γ_1 = β * γ_2 + α
 
+
 n = 100
 Random.seed!(42)
 Z = rand(n)
 W = rand(MatrixNormal(Z[:, :] * [γ_1 γ_2], I(n), Ψ))
 
 
-
 # plot marginal posterior of β for diferent values of α
-plot(β -> exp(f_s([0.0], β, W, Z)), label = "α = 0")
-plot!(β -> exp(f_s([0.5], β, W, Z)), label = "α = 1/2")
-plot!(β -> exp(f_s([-0.5], β, W, Z)), label = "α = -1/2")
-xlims!(-0.5, 2.0)
+plot(β -> exp(f_str([0.0], β, W, Z)), label = "α = 0")
+plot!(β -> exp(f_str([0.1], β, W, Z)), label = "α = 0.1")
+plot!(β -> exp(f_str([-0.1], β, W, Z)), label = "α = -0.1")
+xlims!(0.5, 1.5)
 
 
 # plot joint posterior possibility of α and β
-h(a, b) = exp(f_s([a], b, W, Z))
+h(a, b) = f_str([a], b, W, Z)
 aa = -1:0.1:1
-bb = -1:0.1:2
+bb = 0:0.1:2
 zz = @. h(aa', bb)
 
 # 3d plot
