@@ -75,11 +75,12 @@ yy_1 = map(b -> exp(f_β_given_α(b, -1, 1, W, Z)), bb)
 yy_14 = map(b -> exp(f_β_given_α(b, -1/4, 1/4, W, Z)), bb)
 yy_0 = map(b -> exp(f_str([0.0], b, W, Z)), bb)
 
-plot(bb, yy_unconstrained, xlabel = L"\beta", label = L"| \alpha | \leq 100")
+p = plot(bb, yy_unconstrained, xlabel = L"\beta", label = L"| \alpha | \leq 100")
 plot!(bb, yy_1, xlabel = L"\beta", label = L"| \alpha |  \leq 1")
 plot!(bb, yy_14, xlabel = L"\beta", label = L"| \alpha |  \leq 1/4")
 plot!(bb, yy_0, xlabel = L"\beta", label = L"\alpha = 0")
 
+savefig(p, "Conditional_Possibility.pdf")
 
 
 
