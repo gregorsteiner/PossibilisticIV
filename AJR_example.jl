@@ -16,12 +16,12 @@ y, x, z = map(vec -> M_W * vec, (y_raw, x_raw, z_raw))
 # try out method
 posterior(β, bound) = exp(f_β_given_α(β, -bound, bound, [y x], z))
 
-xx = -10:0.1:15
+xx = -20:0.1:20
 plot(
-    xx, posterior.(xx, 1/4),
+    xx, posterior.(xx, 0.0),
     xlabel = L"\beta", ylabel = "Posterior Possibility",
-    label = L"\alpha \in [-1/4, 1/4]"
+    label = L"\alpha = 0"
 )
-plot!(xx, posterior.(xx, 0.0), label = L"\alpha = 0")
-
+plot!(xx, posterior.(xx, 1/4), label = L"\alpha \in [-1/4, 1/4]")
+plot!(xx, posterior.(xx, 1.0), label = L"\alpha \in [-1, 1]")
 
