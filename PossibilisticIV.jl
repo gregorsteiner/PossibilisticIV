@@ -31,10 +31,27 @@ end
 
 ## conditional possibility of β ##
 function f_β_given_α(β, lower, upper, W, Z) 
-    f(a) = -f_str([a], β, W, Z)
-    res = optimize(f, lower, upper, Brent())
-    α_opt = Optim.minimizer(res)
-    return round(f_str([α_opt], β, W, Z), digits = 10)
+    p = size(Z, 2)
+
+    ## if p = 1 we can use Brent's method which is much faster
+    ## for p > 1 we use Gradient based optimisation
+    if p == 1
+        lower, upper = lower[1], upper[1]
+        res = optimize(a -> -f_str([a], β, W, Z), lower, upper, Brent())
+        α_opt = [Optim.minimizer(res)]
+    else
+        function g!(G, α) # define gradient w.r.t. α
+            Γ_ml = inv(Z'Z) * Z'W
+            G[:] = -Z'Z * (α - [Γ_ml * [1.0; -β]])
+        end
+        inner_optimizer = BFGS()
+        res = optimize(
+            a -> -f_str(a, β, W, Z), g!, lower, upper, zeros(p), 
+            Fminbox(inner_optimizer), Optim.Options(iterations=20)
+        )
+        α_opt = Optim.minimizer(res)
+    end
+    return round(f_str(α_opt, β, W, Z), digits=10)
 end
 
 
