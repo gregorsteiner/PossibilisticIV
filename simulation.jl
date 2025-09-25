@@ -47,7 +47,9 @@ function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
         coverage[2, i] = possibilistic_contour(1.0, -1/2, 1/2, [Y X], Z) > 0.05
         coverage[3, i] = possibilistic_contour(1.0, -1.0, 1.0, [Y X], Z) > 0.05
         coverage[4, i] = check_coverage(tsls(Y, X, Z), 1.0)
-        coverage[5, i] = check_coverage(givbma(Y, X, Z[:, :]; g_prior = "hyper-g/n"), 1.0)
+
+        fit_givbma = givbma(Y, X, Z[:, :]; g_prior = "hyper-g/n", iter = 600, burn = 100)
+        coverage[5, i] = check_coverage(fit_givbma, 1.0)
     end
 
     return (Coverage = mean(coverage; dims = 2), Methods = methods)
