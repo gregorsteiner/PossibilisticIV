@@ -55,4 +55,11 @@ function f_β_given_α(β, lower, upper, W, Z)
 end
 
 
+## Validification (Martin, 2025)
+## We use the Wilk's style approximation
+function possibilistic_contour(β, lower, upper, W, Z)
+    cond_poss_β = f_β_given_α(β, lower, upper, W, Z)
+    return 1 - cdf(Chisq(1), -2 * cond_poss_β)
+end
+
 
