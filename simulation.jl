@@ -2,6 +2,11 @@
 using LaTeXStrings, Random
 
 include("PossibilisticIV.jl")
+include("competing_methods.jl")
+
+Y, X, Z = generate_data(100, 1/2, 0.0)
+res = givbma(Y, X, Z[:, :])
+plot(rbw(res))
 
 ## Data generating function ## 
 function generate_data(n, ρ, α)
@@ -20,7 +25,9 @@ function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
     methods = [
         L"Possibilistic IV $(\alpha = 0)$",
         L"Possibilistic IV $(\alpha \in [-1/2, 1/2])$",
-        L"Possibilistic IV $(\alpha \in [-1, 1])$"
+        L"Possibilistic IV $(\alpha \in [-1, 1])$",
+        "TSLS",
+        "gIVBMA"
         ]
     
     # storage objects
@@ -31,18 +38,23 @@ function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
         # simulate data
         Y, X, Z = generate_data(n, ρ, α)
 
+        # centre data
+        Y, X = (Y .- mean(Y), X .- mean(X))
+
         # compute coverage
         # possibilistic contour at the true value must be > 0.05
         coverage[1, i] = possibilistic_contour(1.0, 0.0, 0.0, [Y X], Z) > 0.05
         coverage[2, i] = possibilistic_contour(1.0, -1/2, 1/2, [Y X], Z) > 0.05
         coverage[3, i] = possibilistic_contour(1.0, -1.0, 1.0, [Y X], Z) > 0.05
+        coverage[4, i] = check_coverage(tsls(Y, X, Z), 1.0)
+        coverage[5, i] = check_coverage(givbma(Y, X, Z[:, :]; g_prior = "hyper-g/n"), 1.0)
     end
 
     return (Coverage = mean(coverage; dims = 2), Methods = methods)
 end
 
 # Run simulation
-m = 1000
+m = 100
 alphas = [0.0, 1/2, 1.0]
 
 Random.seed!(42)
