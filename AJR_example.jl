@@ -28,7 +28,6 @@ plot!(xx, posterior.(xx, 1.0), label = L"\alpha \in [-1, 1]")
 
 
 pi(β, lower, upper) = possibilistic_contour(β, [lower], [upper], [y x], z)
-pi(1.0, 0.0, 0.0)
 
 xx = -10:0.01:10
 plot(
