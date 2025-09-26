@@ -23,7 +23,8 @@ function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
         L"Possibilistic IV $(A = \{0\})$",
         L"Possibilistic IV $(A = [-0.5, 0.5])$",
         "TSLS",
-        "gIVBMA"
+        "gIVBMA",
+        "PGMM-g"
         ]
     
     # storage objects
@@ -44,7 +45,9 @@ function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
         coverage[3, i] = check_coverage(tsls(Y, X, Z), 1.0)
 
         fit_givbma = givbma(Y, X, Z[:, :]; g_prior = "hyper-g/n", iter = 600, burn = 100)
-        coverage[4, i] = check_coverage(fit_givbma, 1.0)
+        coverage[4, i] = check_coverage(rbw(fit_givbma)[1], 1.0)
+
+        coverage[5, i] = check_coverage(pgmm(Y, X, Z, 10*I), 1.0)
     end
 
     return (Coverage = mean(coverage; dims = 2), Methods = methods)
@@ -52,7 +55,7 @@ end
 
 # Run simulation
 m = 500
-alphas = [0.0, 0.5]
+alphas = [0.0, 0.25, 0.5]
 
 Random.seed!(42)
 res = map(a -> run_simulation(m; α = a), alphas)
