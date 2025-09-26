@@ -1,12 +1,9 @@
 
-using LaTeXStrings, Random
+using Random
 
 include("PossibilisticIV.jl")
 include("competing_methods.jl")
 
-Y, X, Z = generate_data(100, 1/2, 0.0)
-res = givbma(Y, X, Z[:, :])
-plot(rbw(res))
 
 ## Data generating function ## 
 function generate_data(n, ρ, α)
@@ -24,8 +21,7 @@ function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
     # different methods
     methods = [
         L"Possibilistic IV $(\alpha = 0)$",
-        L"Possibilistic IV $(\alpha \in [-1/2, 1/2])$",
-        L"Possibilistic IV $(\alpha \in [-1, 1])$",
+        L"Possibilistic IV $(\alpha \in [-0.5, 0.5])$",
         "TSLS",
         "gIVBMA"
         ]
@@ -45,31 +41,31 @@ function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
         # possibilistic contour at the true value must be > 0.05
         coverage[1, i] = possibilistic_contour(1.0, 0.0, 0.0, [Y X], Z) > 0.05
         coverage[2, i] = possibilistic_contour(1.0, -1/2, 1/2, [Y X], Z) > 0.05
-        coverage[3, i] = possibilistic_contour(1.0, -1.0, 1.0, [Y X], Z) > 0.05
-        coverage[4, i] = check_coverage(tsls(Y, X, Z), 1.0)
+        coverage[3, i] = check_coverage(tsls(Y, X, Z), 1.0)
 
         fit_givbma = givbma(Y, X, Z[:, :]; g_prior = "hyper-g/n", iter = 600, burn = 100)
-        coverage[5, i] = check_coverage(fit_givbma, 1.0)
+        coverage[4, i] = check_coverage(fit_givbma, 1.0)
     end
 
     return (Coverage = mean(coverage; dims = 2), Methods = methods)
 end
 
 # Run simulation
-m = 100
-alphas = [0.0, 1/2, 1.0]
+m = 500
+alphas = [0.0, 0.5]
 
 Random.seed!(42)
 res = map(a -> run_simulation(m; α = a), alphas)
 
 
 ## Create a table displaying the results ##
+using LaTeXStrings
 function coverage_table_latex(res, alphas)
     methods = res[1].Methods
     # Create scenario labels dynamically from alphas
     scenarios = ["\\(\\alpha = $(a)\\)" for a in alphas]
 
-    table_str = "\\begin{table}[ht]\n\\centering\n\\caption{Empirical coverage across \$1,000\$ iterations.}\n\\label{tab:coverage}\n"
+    table_str = "\\begin{table}[ht]\n\\centering\n\\caption{Empirical coverage of \$95\\%\$ uncertainty intervals across \$500\$ simulated datasets ot size \$n =100\$.}\n\\label{tab:coverage}\n"
     table_str *= "\\begin{tabular}{l" * "c"^length(scenarios) * "}\n"
     table_str *= "\\toprule\n"
     table_str *= "Method & " * join(scenarios, " & ") * " \\\\\n"

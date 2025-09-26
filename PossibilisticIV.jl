@@ -21,10 +21,10 @@ function f_str(α, β, W, Z)
     # Compute optimal Γ given the constraint
     σ11 = dot([1.0 -β], Ψ_ml, [1.0 ; -β])
     Γ = Γ_ml + (1/σ11) * (α - [Γ_ml * [1.0; -β]]) * [1.0 -β] * Ψ_ml
-    Ψ = (W - Z * Γ)' * (W - Z * Γ) / size(W, 1) 
+    #Ψ = (W - Z * Γ)' * (W - Z * Γ) / size(W, 1) 
 
     # Return relative likelihood at this point (in logs)
-    return ll_rf(Γ, Ψ, W, Z) - ll_rf(Γ_ml, Ψ_ml, W, Z)
+    return ll_rf(Γ, Ψ_ml, W, Z) - ll_rf(Γ_ml, Ψ_ml, W, Z)
 end
 
 
