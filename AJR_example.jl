@@ -26,16 +26,16 @@ plot!(xx, posterior.(xx, 1/10), label = L"\alpha \in [-0.1, 0.1]")
 
 
 # plot possibilistic contour
-pi(β, lower, upper) = possibilistic_contour(β, [lower], [upper], [y x], z)
+pi_w(β, lower, upper) = possibilistic_contour(β, [lower], [upper], [y x], z)
 
 xx = -4:0.005:8
 p = plot(
-    xx, pi.(xx, 0.0, 0.0),
+    xx, pi_w.(xx, 0.0, 0.0),
     linewidth = 1.5,
     xlabel = L"\beta", ylabel = "Possibilistic Contour",
     label = L"\alpha = 0"
 )
-plot!(xx, pi.(xx, -1/4, 1/4), linewidth = 1.5, label = L"\alpha \in [-0.1, 0.1]")
+plot!(xx, pi_w.(xx, -1/4, 1/4), linewidth = 1.5, label = L"\alpha \in [-0.1, 0.1]")
 hline!([0.1], linestyle = :dash, label = "")
 
 savefig(p, "AJR_Possibility_Contour.pdf")
