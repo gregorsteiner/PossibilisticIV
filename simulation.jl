@@ -20,8 +20,8 @@ end
 function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
     # different methods
     methods = [
-        L"Possibilistic IV $(\alpha = 0)$",
-        L"Possibilistic IV $(\alpha \in [-0.5, 0.5])$",
+        L"Possibilistic IV $(A = \{0\})$",
+        L"Possibilistic IV $(A = [-0.5, 0.5])$",
         "TSLS",
         "gIVBMA"
         ]
