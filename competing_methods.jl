@@ -42,4 +42,27 @@ function pgmm(Y, X, Z, Λ)
 end
 
 
+## Budget IV (Penn et al, 2025) ##
+using RCall
 
+function budgetIV(Y, X, Z, tau)
+    @rput Y X Z tau
+    R"""
+    beta_phi = solve(t(Z) %*% Z, t(Z) %*% X)
+    beta_y = solve(t(Z) %*% Z, t(Z) %*% Y)
+
+    ssr = sum((Y - X %*% beta_y)^2)
+    se = sqrt((ssr / (length(Y)-1)) * solve(X %*% X)[1])
+
+    delta_beta_y = c( 1.96 * se)
+    res = budgetIVr::budgetIV_scalar(
+        beta_y, beta_phi,
+        b_vec = c(1),
+        tau_vec = c(tau),
+        delta_beta_y = delta_beta_y
+    )
+    ci = c(res$lower_bound, res$upper_bound)
+    """
+    @rget ci
+    return (ci = ci, tau = tau)
+end
