@@ -1,5 +1,6 @@
 
 using Random
+using LaTeXStrings
 
 include("PossibilisticIV.jl")
 include("competing_methods.jl")
@@ -23,7 +24,6 @@ function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
         L"Possibilistic IV $(A = \{0\})$",
         L"Possibilistic IV $(A = [-0.5, 0.5])$",
         "TSLS",
-        "gIVBMA",
         "PGMM-g"
         ]
     
@@ -42,19 +42,16 @@ function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
         # possibilistic contour at the true value must be > 0.05
         coverage[1, i] = possibilistic_contour(1.0, 0.0, 0.0, [Y X], Z) > 0.05
         coverage[2, i] = possibilistic_contour(1.0, -1/2, 1/2, [Y X], Z) > 0.05
-        coverage[3, i] = check_coverage(tsls(Y, X, Z), 1.0)
-
-        fit_givbma = givbma(Y, X, Z[:, :]; g_prior = "hyper-g/n", iter = 600, burn = 100)
-        coverage[4, i] = check_coverage(rbw(fit_givbma)[1], 1.0)
-
-        coverage[5, i] = check_coverage(pgmm(Y, X, Z, 10*I), 1.0)
+        coverage[3, i] = check_coverage(tsls(Y, X, Z), 1.0) # Naive TSLS
+        coverage[4, i] = check_coverage(pgmm(Y, X, Z, I), 1.0) # PGMM
     end
 
     return (Coverage = mean(coverage; dims = 2), Methods = methods)
 end
 
+
 # Run simulation
-m = 500
+m = 1000
 alphas = [0.0, 0.25, 0.5]
 
 Random.seed!(42)
@@ -62,7 +59,6 @@ res = map(a -> run_simulation(m; α = a), alphas)
 
 
 ## Create a table displaying the results ##
-using LaTeXStrings
 function coverage_table_latex(res, alphas)
     methods = res[1].Methods
     # Create scenario labels dynamically from alphas

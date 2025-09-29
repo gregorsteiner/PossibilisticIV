@@ -1,5 +1,5 @@
 using LinearAlgebra
-
+using gIVBMA
 
 ## TSLS ##
 function tsls(Y, X, Z; level = 0.05)
@@ -34,7 +34,7 @@ function pgmm(Y, X, Z, Λ)
     m_hat = mean([g(Y[i], X[i], Z[i], β_hat) for i in eachindex(Y)])
     Ω_hat = mean([(g(Y[i], X[i], Z[i], β_hat) - m_hat) * (g(Y[i], X[i], Z[i], β_hat) - m_hat)' for i in eachindex(Y)])
 
-    A = inv(Ω_hat) + inv(Ω_hat) * inv(inv(Λ) + inv(Ω_hat)) * inv(Ω_hat)
+    A = inv(Ω_hat) - inv(Ω_hat) * inv(inv(Λ) + inv(Ω_hat)) * inv(Ω_hat)
     
     cov = 1 / (n * dot(G, A, G))
     
