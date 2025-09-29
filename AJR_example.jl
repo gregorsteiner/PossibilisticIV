@@ -1,8 +1,9 @@
 using CSV, DataFrames
-using Plots, LaTeXStrings
+using StatsPlots, LaTeXStrings
 
 # import method function
 include("PossibilisticIV.jl")
+include("competing_methods.jl")
 
 # load data
 d = CSV.read("AJR_Data.csv", DataFrame)
@@ -37,5 +38,10 @@ p = plot(
 )
 plot!(xx, pi_w.(xx, -1/4, 1/4), linewidth = 1.5, label = L"\alpha \in [-0.1, 0.1]")
 hline!([0.1], linestyle = :dash, label = "")
+plot!(res)
 
 savefig(p, "AJR_Possibility_Contour.pdf")
+
+
+
+

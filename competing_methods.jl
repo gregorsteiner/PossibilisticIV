@@ -1,5 +1,5 @@
 using LinearAlgebra
-
+using gIVBMA
 
 ## TSLS ##
 function tsls(Y, X, Z; level = 0.05)
@@ -16,10 +16,53 @@ end
 check_coverage(res, true_value) = res.ci[1] < true_value < res.ci[2]
 
 
-## Check coverage for gIVBMA
-using gIVBMA
-
-function check_coverage(res::gIVBMA.GIVBMA, true_value; level = 0.05)
-    ci = quantile(rbw(res)[1], [level/2, 1 - level/2])
+## Check coverage for distribution objects
+function check_coverage(d::Distribution, true_value; level = 0.05)
+    ci = quantile(d, [level/2, 1 - level/2])
     return ci[1] < true_value < ci[2]
+end
+
+
+## Plausible GMM (PGMM) by Chernozhukov et al (2025)
+function pgmm(Y, X, Z, Λ)
+    n = length(Y)
+
+    g(y, x, z, β) = z * (y - x*β)
+    β_hat = tsls(Y, X, Z).beta_hat[1]
+
+    G = -mean([Z[i, :] * X[i] for i in eachindex(X)])
+    m_hat = mean([g(Y[i], X[i], Z[i], β_hat) for i in eachindex(Y)])
+    Ω_hat = mean([(g(Y[i], X[i], Z[i], β_hat) - m_hat) * (g(Y[i], X[i], Z[i], β_hat) - m_hat)' for i in eachindex(Y)])
+
+    A = inv(Ω_hat) - inv(Ω_hat) * inv(inv(Λ) + inv(Ω_hat)) * inv(Ω_hat)
+    
+    cov = 1 / (n * dot(G, A, G))
+    
+    return Normal(β_hat, sqrt(cov))
+end
+
+
+## Budget IV (Penn et al, 2025) ##
+using RCall
+
+function budgetIV(Y, X, Z, tau)
+    @rput Y X Z tau
+    R"""
+    beta_phi = solve(t(Z) %*% Z, t(Z) %*% X)
+    beta_y = solve(t(Z) %*% Z, t(Z) %*% Y)
+
+    ssr = sum((Y - X %*% beta_y)^2)
+    se = sqrt((ssr / (length(Y)-1)) * solve(X %*% X)[1])
+
+    delta_beta_y = c( 1.96 * se)
+    res = budgetIVr::budgetIV_scalar(
+        beta_y, beta_phi,
+        b_vec = c(1),
+        tau_vec = c(tau),
+        delta_beta_y = delta_beta_y
+    )
+    ci = c(res$lower_bound, res$upper_bound)
+    """
+    @rget ci
+    return (ci = ci, tau = tau)
 end
