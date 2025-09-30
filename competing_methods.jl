@@ -45,19 +45,21 @@ end
 ## Budget IV (Penn et al, 2025) ##
 using RCall
 
-function budgetIV(Y, X, Z, tau)
-    @rput Y X Z tau
+function budgetIV(Y, X, Z, tau, b)
+    @rput Y X Z tau b
     R"""
+    p = ncol(Z)
     beta_phi = solve(t(Z) %*% Z, t(Z) %*% X)
     beta_y = solve(t(Z) %*% Z, t(Z) %*% Y)
 
-    ssr = sum((Y - X %*% beta_y)^2)
-    se = sqrt((ssr / (length(Y)-1)) * solve(X %*% X)[1])
+    ssr = sum((Y - Z %*% beta_y)^2)
+    cov = (ssr / (length(Y)-1)) * solve(t(Z) %*% Z)
+    se = sqrt(diag(cov))
 
-    delta_beta_y = c( 1.96 * se)
+    delta_beta_y = 1.96 * se
     res = budgetIVr::budgetIV_scalar(
-        beta_y, beta_phi,
-        b_vec = c(1),
+        t(beta_y), t(beta_phi),
+        b_vec = c(b),
         tau_vec = c(tau),
         delta_beta_y = delta_beta_y
     )
