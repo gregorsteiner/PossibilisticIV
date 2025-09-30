@@ -25,7 +25,7 @@ function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
         L"Possibilistic IV $(A = [-0.5, 0.5])$",
         "TSLS",
         "PGMM-g",
-        "BudgetIV"
+        L"BudgetIV ($\lvert \alpha \rvert \leq 0.5$)"
         ]
     
     # storage objects
