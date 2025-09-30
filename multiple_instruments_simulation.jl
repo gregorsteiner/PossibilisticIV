@@ -25,12 +25,12 @@ function run_simulation(s; m = 1000, n = 100, ρ = 1/2, p = 5)
     # different methods
     methods = [
         L"Possibilistic IV $(A = \{0\})$",
-        L"Possibilistic IV $(A = [-0.1, 0.1])$",
-        L"Possibilistic IV $(A = [0.0, 0.2])$",
+        L"Possibilistic IV $(A = [-0.1, 0.1]^p)$",
+        L"Possibilistic IV $(A = [0.0, 0.2]^p)$",
         "TSLS",
         "PGMM-g",
         L"BudgetIV ($\alpha = 0$)",
-        L"BudgetIV ($\lvert \alpha \rvert \leq 0.2$)"
+        L"BudgetIV ($\lvert \alpha_i \rvert \leq 0.2$)"
         ]
     
     # storage objects
@@ -62,24 +62,20 @@ function run_simulation(s; m = 1000, n = 100, ρ = 1/2, p = 5)
 end
 
 
-res = run_simulation(5)
-res.Coverage
-
 # Run simulation
 m = 1000
-alphas = [0.0, 0.25, 0.5]
-
+ss = [2, 4]
 Random.seed!(42)
-res = map(a -> run_simulation(m; α = a), alphas)
+res = map(s -> run_simulation(s; m = m), ss)
 
 
 ## Create a table displaying the results ##
-function coverage_table_latex(res, alphas)
+function coverage_table_latex(res, ss)
     methods = res[1].Methods
     # Create scenario labels dynamically from alphas
-    scenarios = ["\\(\\alpha = $(a)\\)" for a in alphas]
+    scenarios = ["\\(s = $(s)\\)" for s in ss]
 
-    table_str = "\\begin{table}[ht]\n\\centering\n\\caption{Empirical coverage of \$95\\%\$ uncertainty intervals across \$1,000\$ simulated datasets ot size \$n =100\$.}\n\\label{tab:coverage}\n"
+    table_str = "\\begin{table}[ht]\n\\centering\n\\caption{Empirical coverage of \$95\\%\$ uncertainty intervals across \$1,000\$ simulated datasets ot size \$n =100\$, where \$s\$ out of \$p=5\$ instruments are invalid with \$\\alpha_i = 0.1\$.}\n\\label{tab:coverage_multiple_instruments}\n"
     table_str *= "\\begin{tabular}{l" * "c"^length(scenarios) * "}\n"
     table_str *= "\\toprule\n"
     table_str *= "Method & " * join(scenarios, " & ") * " \\\\\n"
@@ -99,4 +95,4 @@ function coverage_table_latex(res, alphas)
     return println(table_str)
 end
 
-coverage_table_latex(res, alphas)
+coverage_table_latex(res, ss)
