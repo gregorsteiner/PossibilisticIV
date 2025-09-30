@@ -30,7 +30,8 @@ function run_simulation(s; m = 1000, n = 100, ρ = 1/2, p = 5)
         "TSLS",
         "PGMM-g",
         L"BudgetIV ($\alpha = 0$)",
-        L"BudgetIV ($\lvert \alpha_i \rvert \leq 0.2$)"
+        L"BudgetIV ($\lvert \alpha_i \rvert \leq 0.2$)",
+        "CIIV"
         ]
     
     # storage objects
@@ -56,6 +57,7 @@ function run_simulation(s; m = 1000, n = 100, ρ = 1/2, p = 5)
         coverage[5, i] = check_coverage(pgmm(Y, X, Z, I), true_β) # PGMM
         coverage[6, i] =  check_coverage(budgetIV(Y, X, Z, 0.0, 1), true_β) # BudgetIV with budget 0
         coverage[7, i] =  check_coverage(budgetIV(Y, X, Z, 0.2, 1), true_β) # BudgetIV with budget 1/2
+        coverage[8, i] = check_coverage(ciiv(Y, X, Z), true_β) # CIIV
     end
 
     return (Coverage = mean(coverage; dims = 2), Methods = methods)
@@ -64,7 +66,7 @@ end
 
 # Run simulation
 m = 1000
-ss = [2, 4]
+ss = [1, 3, 5]
 Random.seed!(42)
 res = map(s -> run_simulation(s; m = m), ss)
 

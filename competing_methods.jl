@@ -68,3 +68,17 @@ function budgetIV(Y, X, Z, tau, b)
     @rget ci
     return (ci = ci, tau = tau)
 end
+
+## The confidence interval IV method (CIIV) by Windmeijer et al (2021) ##
+function ciiv(Y, X, Z)
+    p = size(Z, 2)
+    @rput Y X Z
+    R"""
+    library(sandwich)
+    res = CIIV::CIIV(Y, X, Z)
+    ci = unname(res$ci_CIM)
+    """
+    @rget ci
+    return (ci, p = p)
+end
+
