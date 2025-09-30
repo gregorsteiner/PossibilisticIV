@@ -13,14 +13,14 @@ end
 # analytic posterior possibility (marginalising over the covariance)
 function f_str(α, β, W, Z)
     # Compute ML estimates
-    Γ_ml = inv(Z'Z) * Z'W
+    Γ_ml = Z'Z \ Z'W
     # Plug in ML estimate for Ψ
     # We could also explicitly model Σ and then Ψ is deterministic given Σ and β
     Ψ_ml = (W - Z * Γ_ml)' * (W - Z * Γ_ml) / size(W, 1) 
     
     # Compute optimal Γ given the constraint
     σ11 = dot([1.0 -β], Ψ_ml, [1.0 ; -β])
-    Γ = Γ_ml + (1/σ11) * (α - Γ_ml * [1.0; -β]) * [1.0 -β] * Ψ_ml
+    Γ = Γ_ml + (1/σ11) * (α .- Γ_ml * [1.0; -β]) * [1.0 -β] * Ψ_ml
     #Ψ = (W - Z * Γ)' * (W - Z * Γ) / size(W, 1) 
 
     # Return relative likelihood at this point (in logs)
