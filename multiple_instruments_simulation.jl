@@ -21,7 +21,7 @@ function generate_data(n, s; ρ = 1/2, β = 1.0, p = 5)
 end
 
 ## Write function to implement the simulation ##
-function run_simulation(s; m = 1000, n = 100, ρ = 1/2, p = 5)
+function run_simulation(s; m = 200, n = 100, ρ = 1/2, p = 5)
     # different methods
     methods = [
         L"Possibilistic IV $(A = \{0\})$",
@@ -31,7 +31,8 @@ function run_simulation(s; m = 1000, n = 100, ρ = 1/2, p = 5)
         "PGMM-g",
         L"BudgetIV ($\alpha = 0$)",
         L"BudgetIV ($\lvert \alpha_i \rvert \leq 0.2$)",
-        "CIIV"
+        "CIIV",
+        "gIVBMA"
         ]
     
     # storage objects
@@ -58,6 +59,8 @@ function run_simulation(s; m = 1000, n = 100, ρ = 1/2, p = 5)
         coverage[6, i] =  check_coverage(budgetIV(Y, X, Z, 0.0, 1), true_β) # BudgetIV with budget 0
         coverage[7, i] =  check_coverage(budgetIV(Y, X, Z, 0.2, 1), true_β) # BudgetIV with budget 1/2
         coverage[8, i] = check_coverage(ciiv(Y, X, Z), true_β) # CIIV
+        fit_givbma = givbma(Y, X, Z; g_prior = "hyper-g/n", iter = 200, burn = 50) # gIVBMA
+        coverage[9, i] = check_coverage(rbw(fit_givbma)[1], true_β)
     end
 
     return (Coverage = mean(coverage; dims = 2), Methods = methods)
@@ -70,14 +73,23 @@ ss = [1, 3, 5]
 Random.seed!(42)
 res = map(s -> run_simulation(s; m = m), ss)
 
-
-## Create a table displaying the results ##
+## Latex table displaying the results ##
 function coverage_table_latex(res, ss)
     methods = res[1].Methods
     # Create scenario labels dynamically from alphas
     scenarios = ["\\(s = $(s)\\)" for s in ss]
 
-    table_str = "\\begin{table}[ht]\n\\centering\n\\caption{Empirical coverage of \$95\\%\$ uncertainty intervals across \$1,000\$ simulated datasets ot size \$n =100\$, where \$s\$ out of \$p=5\$ instruments are invalid with \$\\alpha_i = 0.1\$.}\n\\label{tab:coverage_multiple_instruments}\n"
+    # Find the index of the value closest to 0.95 for each scenario (column)
+    best_indices = []
+    for j in 1:length(scenarios)
+        coverages = res[j].Coverage[:, 1]
+        # Compute distances to 0.95
+        distances = [abs(c - 0.95) for c in coverages]
+        # Find the index of the min distance (i.e., closest to 0.95)
+        push!(best_indices, argmin(distances))
+    end
+
+    table_str = "\\begin{table}[ht]\n\\centering\n\\caption{Empirical coverage of \$95\\%\$ uncertainty intervals across \$200\$ simulated datasets ot size \$n =100\$, where \$s\$ out of \$p=5\$ instruments are invalid with \$\\alpha_i = 0.1\$. The value closest to the nominal coverage in each column is printed in bold.}\n\\label{tab:coverage_multiple_instruments}\n"
     table_str *= "\\begin{tabular}{l" * "c"^length(scenarios) * "}\n"
     table_str *= "\\toprule\n"
     table_str *= "Method & " * join(scenarios, " & ") * " \\\\\n"
@@ -87,7 +99,11 @@ function coverage_table_latex(res, ss)
         row_vals = []
         for j in 1:length(scenarios)
             coverage_val = res[j].Coverage[i]
-            push!(row_vals, string(coverage_val))
+            if i == best_indices[j]
+                push!(row_vals, "\\textbf{$(coverage_val)}")
+            else
+                push!(row_vals, string(coverage_val))
+            end
         end
         table_str *= method * " & " * join(row_vals, " & ") * " \\\\\n"
     end
@@ -96,5 +112,6 @@ function coverage_table_latex(res, ss)
 
     return println(table_str)
 end
+
 
 coverage_table_latex(res, ss)

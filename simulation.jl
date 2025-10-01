@@ -73,7 +73,17 @@ function coverage_table_latex(res, alphas)
     # Create scenario labels dynamically from alphas
     scenarios = ["\\(\\alpha = $(a)\\)" for a in alphas]
 
-    table_str = "\\begin{table}[ht]\n\\centering\n\\caption{Empirical coverage of \$95\\%\$ uncertainty intervals across \$1,000\$ simulated datasets ot size \$n =100\$.}\n\\label{tab:coverage}\n"
+    # Find the index of the value closest to 0.95 for each scenario (column)
+    best_indices = []
+    for j in 1:length(scenarios)
+        coverages = res[j].Coverage[:, 1]
+        # Compute distances to 0.95
+        distances = [abs(c - 0.95) for c in coverages]
+        # Find the index of the min distance (i.e., closest to 0.95)
+        push!(best_indices, argmin(distances))
+    end
+
+    table_str = "\\begin{table}[ht]\n\\centering\n\\caption{Empirical coverage of \$95\\%\$ uncertainty intervals across \$1,000\$ simulated datasets ot size \$n =100\$. The value closest to the nominal coverage in each column is printed in bold.}\n\\label{tab:coverage}\n"
     table_str *= "\\begin{tabular}{l" * "c"^length(scenarios) * "}\n"
     table_str *= "\\toprule\n"
     table_str *= "Method & " * join(scenarios, " & ") * " \\\\\n"
@@ -83,7 +93,11 @@ function coverage_table_latex(res, alphas)
         row_vals = []
         for j in 1:length(scenarios)
             coverage_val = res[j].Coverage[i]
-            push!(row_vals, string(coverage_val))
+            if i == best_indices[j]
+                push!(row_vals, "\\textbf{$(coverage_val)}")
+            else
+                push!(row_vals, string(coverage_val))
+            end
         end
         table_str *= method * " & " * join(row_vals, " & ") * " \\\\\n"
     end
