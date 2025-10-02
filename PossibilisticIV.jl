@@ -30,7 +30,8 @@ end
 
 
 ## conditional possibility of β ##
-using JuMP, OSQP
+using JuMP, OSQP, Optim 
+
 function f_β_given_α(β, lower, upper, W, Z) 
     p = size(Z, 2)
     Γ_ml = Z'Z \ Z'W
@@ -43,7 +44,13 @@ function f_β_given_α(β, lower, upper, W, Z)
     optimize!(model)
     α_opt = value(α) # extract optimal value
 
-    return f_str(α_opt, β, W, Z)
+    ## Given optimal α, find optimal β to renormalise
+    h(β_int) = -f_str(α_opt, β_int, W, Z)
+    res = optimize(h, [0.0])
+    β_opt = Optim.minimizer(res)
+
+    ## return normalised result
+    return f_str(α_opt, β, W, Z) - f_str(α_opt, β_opt, W, Z)
 end
 
 
