@@ -27,7 +27,8 @@ p = plot(
     xx, pi_w.(xx, 0.0, 0.0),
     linewidth = 1.5,
     xlabel = L"\beta", ylabel = "",
-    label = L"\alpha = 0"
+    label = L"\alpha = 0",
+    size=(600, 300)
 )
 plot!(xx, pi_w.(xx, -1/10, 1/10), linewidth = 1.5, label = L"\alpha \in [-0.1, 0.1]")
 plot!(xx, posterior.(xx, 0.0, 0.0), linestyle = :dash, linewidth = 1.5, color = 1, label = "")
