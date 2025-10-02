@@ -7,27 +7,32 @@ include("competing_methods.jl")
 
 
 ## Data generating function ## 
-function generate_data(n, ρ, α; β = 1.0)
-    γ_2 = 1.0
-    Z = rand(Normal(0, 1), n)
+function generate_data(n, s; ρ = 1/2, β = 1.0, p = 5)
+    Z = rand(MvNormal(zeros(p), I), n)'
 
-    u = rand(MvNormal(zeros(2), [1.0 ρ; ρ 1.0]), n)'
-    X = Z * γ_2 + u[:, 1]
-    Y = β * X + α * Z + u[:, 2]
-    return Y, X, Z
+    γ_2   = ones(p) .* 1/4 # chosen s.t. the first-stage R^2 is approximately 0.25
+    α = 0.1 .* [ones(s); zeros(p-s)]
+
+    u = rand(MvNormal([0, 0], [1 ρ; ρ 1]), n)'
+    x = Z * γ_2 + u[:,2]
+    y = β * x .+ Z * α + u[:,1]
+
+    return (y, x, Z)
 end
 
 ## Write function to implement the simulation ##
-function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
+function run_simulation(s; m = 100, n = 100, ρ = 1/2, p = 5)
     # different methods
     methods = [
         L"Possibilistic IV $(A = \{0\})$",
-        L"Possibilistic IV $(A = [-0.5, 0.5])$",
-        L"Possibilistic IV $(A = [0.0, 0.5])$",
+        L"Possibilistic IV $(A = [-0.1, 0.1]^p)$",
+        L"Possibilistic IV $(A = [0.0, 0.2]^p)$",
         "TSLS",
         "PGMM-g",
         L"BudgetIV ($\alpha = 0$)",
-        L"BudgetIV ($\lvert \alpha \rvert \leq 0.5$)"
+        L"BudgetIV ($\lvert \alpha_i \rvert \leq 0.2$)",
+        "CIIV",
+        "gIVBMA"
         ]
     
     # storage objects
@@ -39,20 +44,23 @@ function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
     # start iterating
     for i in 1:m
         # simulate data
-        Y, X, Z = generate_data(n, ρ, α; β = true_β)
+        Y, X, Z = generate_data(n, s; ρ = ρ, β = true_β, p = p)
 
         # centre data
         Y, X = (Y .- mean(Y), X .- mean(X))
 
         # compute coverage
         # possibilistic contour at the true value must be > 0.05
-        coverage[1, i] = possibilistic_contour(true_β, 0.0, 0.0, [Y X], Z) > 0.05
-        coverage[2, i] = possibilistic_contour(true_β, -1/2, 1/2, [Y X], Z) > 0.05
-        coverage[3, i] = possibilistic_contour(true_β, -0.0, 1/2, [Y X], Z) > 0.05
+        coverage[1, i] = possibilistic_contour(true_β, zeros(p), zeros(p), [Y X], Z) > 0.05
+        coverage[2, i] = possibilistic_contour(true_β, -0.1 * ones(p), 0.1 * ones(p), [Y X], Z) > 0.05
+        coverage[3, i] = possibilistic_contour(true_β, -0.0 * ones(p), 0.2 * ones(p), [Y X], Z) > 0.05
         coverage[4, i] = check_coverage(tsls(Y, X, Z), true_β) # Naive TSLS
         coverage[5, i] = check_coverage(pgmm(Y, X, Z, I), true_β) # PGMM
         coverage[6, i] =  check_coverage(budgetIV(Y, X, Z, 0.0, 1), true_β) # BudgetIV with budget 0
-        coverage[7, i] =  check_coverage(budgetIV(Y, X, Z, 1/2, 1), true_β) # BudgetIV with budget 1/2
+        coverage[7, i] =  check_coverage(budgetIV(Y, X, Z, 0.2, 1), true_β) # BudgetIV with budget 1/2
+        coverage[8, i] = check_coverage(ciiv(Y, X, Z), true_β) # CIIV
+        fit_givbma = givbma(Y, X, Z; g_prior = "hyper-g/n", iter = 500, burn = 100) # gIVBMA
+        coverage[9, i] = check_coverage(rbw(fit_givbma)[1], true_β)
     end
 
     return (Coverage = mean(coverage; dims = 2), Methods = methods)
@@ -60,18 +68,16 @@ end
 
 
 # Run simulation
-m = 1000
-alphas = [0.0, 0.25, 0.5]
-
+m = 500
+ss = [0, 2, 3, 5]
 Random.seed!(42)
-res = map(a -> run_simulation(m; α = a), alphas)
+res = map(s -> run_simulation(s; m = m), ss)
 
-
-## Create a table displaying the results ##
-function coverage_table_latex(res, alphas)
+## Latex table displaying the results ##
+function coverage_table_latex(res, ss)
     methods = res[1].Methods
     # Create scenario labels dynamically from alphas
-    scenarios = ["\\(\\alpha = $(a)\\)" for a in alphas]
+    scenarios = ["\\(s = $(s)\\)" for s in ss]
 
     # Find the index of the value closest to 0.95 for each scenario (column)
     best_indices = []
@@ -83,7 +89,7 @@ function coverage_table_latex(res, alphas)
         push!(best_indices, argmin(distances))
     end
 
-    table_str = "\\begin{table}[ht]\n\\centering\n\\caption{Empirical coverage of \$95\\%\$ uncertainty intervals across \$1,000\$ simulated datasets ot size \$n =100\$. The value closest to the nominal coverage in each column is printed in bold.}\n\\label{tab:coverage}\n"
+    table_str = "\\begin{table}[ht]\n\\centering\n\\caption{Empirical coverage of \$95\\%\$ uncertainty intervals across \$500\$ simulated datasets ot size \$n =100\$, where \$s\$ out of \$p=5\$ instruments are invalid with \$\\alpha_i = 0.1\$. The value closest to the nominal coverage in each column is printed in bold.}\n\\label{tab:coverage_multiple_instruments}\n"
     table_str *= "\\begin{tabular}{l" * "c"^length(scenarios) * "}\n"
     table_str *= "\\toprule\n"
     table_str *= "Method & " * join(scenarios, " & ") * " \\\\\n"
@@ -107,4 +113,5 @@ function coverage_table_latex(res, alphas)
     return println(table_str)
 end
 
-coverage_table_latex(res, alphas)
+
+coverage_table_latex(res, ss)

@@ -13,24 +13,25 @@ end
 # analytic posterior possibility (marginalising over the covariance)
 function f_str(α, β, W, Z)
     # Compute ML estimates
-    Γ_ml = inv(Z'Z) * Z'W
+    Γ_ml = Z'Z \ Z'W
     # Plug in ML estimate for Ψ
     # We could also explicitly model Σ and then Ψ is deterministic given Σ and β
     Ψ_ml = (W - Z * Γ_ml)' * (W - Z * Γ_ml) / size(W, 1) 
-
+    
     # Compute optimal Γ given the constraint
     σ11 = dot([1.0 -β], Ψ_ml, [1.0 ; -β])
-    Γ = Γ_ml + (1/σ11) * (α - [Γ_ml * [1.0; -β]]) * [1.0 -β] * Ψ_ml
-    #Ψ = (W - Z * Γ)' * (W - Z * Γ) / size(W, 1) 
+    Γ = Γ_ml + (1/σ11) * (α .- Γ_ml * [1.0; -β]) * [1.0 -β] * Ψ_ml
+    Ψ = (W - Z * Γ)' * (W - Z * Γ) / size(W, 1) 
 
     # Return relative likelihood at this point (in logs)
-    return ll_rf(Γ, Ψ_ml, W, Z) - ll_rf(Γ_ml, Ψ_ml, W, Z)
+    return ll_rf(Γ, Ψ, W, Z) - ll_rf(Γ_ml, Ψ_ml, W, Z)
 end
 
 
 
 ## conditional possibility of β ##
-using JuMP, OSQP
+using JuMP, OSQP, Optim 
+
 function f_β_given_α(β, lower, upper, W, Z) 
     p = size(Z, 2)
     Γ_ml = Z'Z \ Z'W
@@ -43,7 +44,13 @@ function f_β_given_α(β, lower, upper, W, Z)
     optimize!(model)
     α_opt = value(α) # extract optimal value
 
-    return f_str(α_opt, β, W, Z)
+    ## Given optimal α, find optimal β to renormalise
+    h(β_int) = -f_str(α_opt, β_int, W, Z)
+    res = optimize(h, [0.0])
+    β_opt = Optim.minimizer(res)
+
+    ## return normalised result
+    return f_str(α_opt, β, W, Z) - f_str(α_opt, β_opt, W, Z)
 end
 
 
