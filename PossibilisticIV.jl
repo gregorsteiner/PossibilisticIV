@@ -21,10 +21,10 @@ function f_str(α, β, W, Z)
     # Compute optimal Γ given the constraint
     σ11 = dot([1.0 -β], Ψ_ml, [1.0 ; -β])
     Γ = Γ_ml + (1/σ11) * (α .- Γ_ml * [1.0; -β]) * [1.0 -β] * Ψ_ml
-    Ψ = (W - Z * Γ)' * (W - Z * Γ) / size(W, 1) 
+    #Ψ = (W - Z * Γ)' * (W - Z * Γ) / size(W, 1) 
 
     # Return relative likelihood at this point (in logs)
-    return ll_rf(Γ, Ψ, W, Z) - ll_rf(Γ_ml, Ψ_ml, W, Z)
+    return ll_rf(Γ, Ψ_ml, W, Z) - ll_rf(Γ_ml, Ψ_ml, W, Z)
 end
 
 
@@ -32,7 +32,8 @@ end
 ## conditional possibility of β ##
 using JuMP, OSQP, Optim 
 
-function f_β_given_α(β, lower, upper, W, Z) 
+# unnormalised possibilistic conditional posterior (on log-scale)
+function conditional_possibility_unnormalised(β, lower, upper, W, Z) 
     p = size(Z, 2)
     Γ_ml = Z'Z \ Z'W
 
@@ -44,21 +45,34 @@ function f_β_given_α(β, lower, upper, W, Z)
     optimize!(model)
     α_opt = value(α) # extract optimal value
 
-    ## Given optimal α, find optimal β to renormalise
-    h(β_int) = -f_str(α_opt, β_int, W, Z)
-    res = optimize(h, [0.0])
+    ## return normalised result
+    return f_str(α_opt, β, W, Z)
+end
+
+# normalising constant
+function normalising_constant(lower, upper, W, Z; x0 = [0.0], algorithm = SimulatedAnnealing())
+    ## find optimal β to renormalise
+    h(β_int) = -conditional_possibility_unnormalised(β_int, lower, upper, W, Z)
+    res = optimize(x -> h(first(x)), x0, algorithm)
     β_opt = Optim.minimizer(res)
 
-    ## return normalised result
-    return f_str(α_opt, β, W, Z) - f_str(α_opt, β_opt, W, Z)
+    ## return normalising constant
+    return conditional_possibility_unnormalised(β_opt, lower, upper, W, Z)
+end
+
+# conditional possibilistic posterior (normalised on log-scale)
+function conditional_possibility(β_vec, lower, upper, W, Z)
+    norm_const = normalising_constant(lower, upper, W, Z)
+    cond_poss_β = [conditional_possibility_unnormalised(β, lower, upper, W, Z) - norm_const for β in β_vec]
+    return cond_poss_β
 end
 
 
 ## Validification (Martin, 2025)
 ## We use the Wilk's style approximation
-function possibilistic_contour(β, lower, upper, W, Z)
-    cond_poss_β = f_β_given_α(β, lower, upper, W, Z)
-    return 1 - cdf(Chisq(1), -2 * cond_poss_β)
+function possibilistic_contour(β_vec, lower, upper, W, Z)
+    cond_poss_β = conditional_possibility(β_vec, lower, upper, W, Z)
+    return map(x -> 1 - cdf(Chisq(1), -2 * x), cond_poss_β)
 end
 
 
