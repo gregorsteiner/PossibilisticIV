@@ -50,10 +50,10 @@ function conditional_possibility_unnormalised(β, lower, upper, W, Z)
 end
 
 # normalising constant
-function normalising_constant(lower, upper, W, Z; x0 = [0.0])
+function normalising_constant(lower, upper, W, Z; x0 = [1.0])
     ## find optimal β to renormalise
     h(β_int) = -conditional_possibility_unnormalised(β_int, lower, upper, W, Z)
-    res = optimize(x -> h(first(x)), x0, SimulatedAnnealing())
+    res = optimize(x -> h(first(x)), x0)
     β_opt = Optim.minimizer(res)
 
     ## return normalising constant
@@ -61,7 +61,7 @@ function normalising_constant(lower, upper, W, Z; x0 = [0.0])
 end
 
 # conditional possibilistic posterior (normalised on log-scale)
-function conditional_possibility(β_vec, lower, upper, W, Z; x0 = [0.0])
+function conditional_possibility(β_vec, lower, upper, W, Z; x0 = [1.0])
     norm_const = normalising_constant(lower, upper, W, Z; x0 = x0)
     cond_poss_β = [conditional_possibility_unnormalised(β, lower, upper, W, Z) - norm_const for β in β_vec]
     return cond_poss_β

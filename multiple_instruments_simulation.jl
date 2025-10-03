@@ -51,9 +51,11 @@ function run_simulation(s; m = 100, n = 100, ρ = 1/2, p = 5)
 
         # compute coverage
         # possibilistic contour at the true value must be > 0.05
-        coverage[1, i] = possibilistic_contour(true_β, zeros(p), zeros(p), [Y X], Z) > 0.05
-        coverage[2, i] = possibilistic_contour(true_β, -0.1 * ones(p), 0.1 * ones(p), [Y X], Z) > 0.05
-        coverage[3, i] = possibilistic_contour(true_β, -0.0 * ones(p), 0.2 * ones(p), [Y X], Z) > 0.05
+        coverage[1, i] = first(possibilistic_contour(true_β, zeros(p), zeros(p), [Y X], Z)) > 0.05
+        coverage[2, i] = first(possibilistic_contour(true_β, -0.1 * ones(p), 0.1 * ones(p), [Y X], Z)) > 0.05
+        coverage[3, i] = first(possibilistic_contour(true_β, -0.0 * ones(p), 0.2 * ones(p), [Y X], Z)) > 0.05
+
+        # compute coverage for competing methods
         coverage[4, i] = check_coverage(tsls(Y, X, Z), true_β) # Naive TSLS
         coverage[5, i] = check_coverage(pgmm(Y, X, Z, I), true_β) # PGMM
         coverage[6, i] =  check_coverage(budgetIV(Y, X, Z, 0.0, 1), true_β) # BudgetIV with budget 0
