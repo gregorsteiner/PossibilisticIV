@@ -50,10 +50,10 @@ function conditional_possibility_unnormalised(β, lower, upper, W, Z)
 end
 
 # normalising constant
-function normalising_constant(lower, upper, W, Z; x0 = [0.0], algorithm = SimulatedAnnealing())
+function normalising_constant(lower, upper, W, Z; x0 = [0.0])
     ## find optimal β to renormalise
     h(β_int) = -conditional_possibility_unnormalised(β_int, lower, upper, W, Z)
-    res = optimize(x -> h(first(x)), x0, algorithm)
+    res = optimize(x -> h(first(x)), x0, SimulatedAnnealing())
     β_opt = Optim.minimizer(res)
 
     ## return normalising constant
@@ -61,8 +61,8 @@ function normalising_constant(lower, upper, W, Z; x0 = [0.0], algorithm = Simula
 end
 
 # conditional possibilistic posterior (normalised on log-scale)
-function conditional_possibility(β_vec, lower, upper, W, Z)
-    norm_const = normalising_constant(lower, upper, W, Z)
+function conditional_possibility(β_vec, lower, upper, W, Z; x0 = [0.0])
+    norm_const = normalising_constant(lower, upper, W, Z; x0 = x0)
     cond_poss_β = [conditional_possibility_unnormalised(β, lower, upper, W, Z) - norm_const for β in β_vec]
     return cond_poss_β
 end
@@ -70,8 +70,8 @@ end
 
 ## Validification (Martin, 2025)
 ## We use the Wilk's style approximation
-function possibilistic_contour(β_vec, lower, upper, W, Z)
-    cond_poss_β = conditional_possibility(β_vec, lower, upper, W, Z)
+function possibilistic_contour(β_vec, lower, upper, W, Z; x0 = [0.0])
+    cond_poss_β = conditional_possibility(β_vec, lower, upper, W, Z; x0 = x0)
     return map(x -> 1 - cdf(Chisq(1), -2 * x), cond_poss_β)
 end
 
