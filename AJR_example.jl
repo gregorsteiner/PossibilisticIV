@@ -16,7 +16,7 @@ y, x, z = map(vec -> M_W * vec, (y_raw, x_raw, z_raw))
 
 
 # Create plot
-xx = -3:0.005:6
+xx = -1:0.005:5
 p = plot(
     xx, possibilistic_contour(xx, [0.0], [0.0], [y x], z; x0 = [1.0]),
     linewidth = 1.5,
@@ -25,10 +25,13 @@ p = plot(
     size=(600, 300)
 )
 plot!(xx, possibilistic_contour(xx, [-0.1], [0.1], [y x], z; x0 = [1.0]), linewidth = 1.5, label = L"\alpha \in [-0.1, 0.1]")
+plot!(xx, possibilistic_contour(xx, [-0.18], [0.18], [y x], z; x0 = [1.0]), linewidth = 1.5, label = L"\alpha \in [-0.18, 0.18]")
 plot!(xx, exp.(conditional_possibility(xx, [0.0], [0.0], [y x], z; x0 = [1.0])), linestyle = :dash, linewidth = 1.5, color = 1, label = "")
 plot!(xx, exp.(conditional_possibility(xx, [-0.1], [0.1], [y x], z; x0 = [1.0])), linestyle = :dash, linewidth = 1.5, color = 2, label = "")
+plot!(xx, exp.(conditional_possibility(xx, [-0.18], [0.18], [y x], z; x0 = [1.0])), linestyle = :dash, linewidth = 1.5, color = 3, label = "")
 
-hline!([0.1], linestyle = :dash, label = "", colour = :grey)
+
+hline!([0.05], linestyle = :dash, label = "", colour = :grey)
 
 savefig(p, "AJR_Possibility_Contour.pdf")
 

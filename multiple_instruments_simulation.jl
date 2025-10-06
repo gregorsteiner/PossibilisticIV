@@ -69,7 +69,7 @@ function run_simulation(s; m = 100, n = 100, ρ = 1/2, p = 5)
 end
 
 
-# Run simulation
+# Run simulation ##
 m = 500
 ss = [0, 2, 3, 5]
 Random.seed!(42)
