@@ -14,7 +14,6 @@ W = [ones(length(y_raw)) Matrix(d[:, ["Latitude", "Africa", "Asia", "Namer", "Sa
 M_W = I - W * inv(W'W) * W'
 y, x, z = map(vec -> M_W * vec, (y_raw, x_raw, z_raw))
 
-
 # Create plot
 xx = -1:0.005:5
 p = plot(

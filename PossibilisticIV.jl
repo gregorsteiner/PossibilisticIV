@@ -36,16 +36,22 @@ using JuMP, OSQP, Optim
 function conditional_possibility_unnormalised(β, lower, upper, W, Z) 
     p = size(Z, 2)
     Γ_ml = Z'Z \ Z'W
+    t = Γ_ml * [1.0; -β]
 
-    ## Use quadratic programming to find optimal α
-    model = Model(OSQP.Optimizer)
-    set_silent(model) # suppress any output
-    @variable(model, lower[i] <= α[i=1:p] <= upper[i])
-    @objective(model, Min, dot(α, Z'Z, α) + dot(-2 * Z'Z * Γ_ml * [1.0; -β], α))
-    optimize!(model)
-    α_opt = value(α) # extract optimal value
+    ## Optimise over α ##
+    # If t is in the constraint set just use t
+    # Else use quadratic programming to find optimal α
+    if all(lower .< t .< upper)
+        α_opt = t
+    else
+        model = Model(OSQP.Optimizer)
+        set_silent(model) # suppress any output
+        @variable(model, lower[i] <= α[i=1:p] <= upper[i])
+        @objective(model, Min, dot(α .- t, Z'Z, α .- t))
+        optimize!(model)
+        α_opt = value(α) # extract optimal value
+    end
 
-    ## return normalised result
     return f_str(α_opt, β, W, Z)
 end
 
