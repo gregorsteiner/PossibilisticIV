@@ -14,26 +14,49 @@ W = [ones(length(y_raw)) Matrix(d[:, ["Latitude", "Africa", "Asia", "Namer", "Sa
 M_W = I - W * inv(W'W) * W'
 y, x, z = map(vec -> M_W * vec, (y_raw, x_raw, z_raw))
 
-
 # Create plot
-xx = -1:0.005:5
+xx = -5:0.005:5
 p = plot(
-    xx, possibilistic_contour(xx, [0.0], [0.0], [y x], z; x0 = [1.0]),
+    xx, possibilistic_contour(xx, [0.0], [0.0], [y x], z),
     linewidth = 1.5,
     xlabel = L"\beta", ylabel = "",
     label = L"\alpha = 0",
     size=(600, 300)
 )
-plot!(xx, possibilistic_contour(xx, [-0.1], [0.1], [y x], z; x0 = [1.0]), linewidth = 1.5, label = L"\alpha \in [-0.1, 0.1]")
-plot!(xx, possibilistic_contour(xx, [-0.18], [0.18], [y x], z; x0 = [1.0]), linewidth = 1.5, label = L"\alpha \in [-0.18, 0.18]")
-plot!(xx, exp.(conditional_possibility(xx, [0.0], [0.0], [y x], z; x0 = [1.0])), linestyle = :dash, linewidth = 1.5, color = 1, label = "")
-plot!(xx, exp.(conditional_possibility(xx, [-0.1], [0.1], [y x], z; x0 = [1.0])), linestyle = :dash, linewidth = 1.5, color = 2, label = "")
-plot!(xx, exp.(conditional_possibility(xx, [-0.18], [0.18], [y x], z; x0 = [1.0])), linestyle = :dash, linewidth = 1.5, color = 3, label = "")
-
+plot!(xx, possibilistic_contour(xx, [-0.1], [0.1], [y x], z), linewidth = 1.5, label = L"\alpha \in [-0.1, 0.1]")
+plot!(xx, possibilistic_contour(xx, [-0.18], [0.18], [y x], z), linewidth = 1.5, label = L"\alpha \in [-0.18, 0.18]")
+plot!(xx, exp.(conditional_possibility(xx, [0.0], [0.0], [y x], z)), linestyle = :dash, linewidth = 1.5, color = 1, label = "")
+plot!(xx, exp.(conditional_possibility(xx, [-0.1], [0.1], [y x], z)), linestyle = :dash, linewidth = 1.5, color = 2, label = "")
+plot!(xx, exp.(conditional_possibility(xx, [-0.18], [0.18], [y x], z)), linestyle = :dash, linewidth = 1.5, color = 3, label = "")
 
 hline!([0.05], linestyle = :dash, label = "", colour = :grey)
 
 savefig(p, "AJR_Possibility_Contour.pdf")
 
+# Compute upper and lower probabilities
+# for the hypothesis β > 0
+function compute_upper_lower(lower_α, upper_α, W, Z)
+    lower, upper = (1 - upper_probability(-1e10, 0.0, lower_α, upper_α, W, Z), upper_probability(0.0, 1e10, lower_α, upper_α, W, Z))
+    return [lower, upper]
+end
 
 
+probs_res = map(
+    (b) -> compute_upper_lower([-b], [b], [y x], z),
+    [0.0, 0.1, 0.18, 0.25, 0.35]
+) 
+probs_res = reduce(hcat, probs_res)'
+round.(probs_res; digits = 3)
+
+using LaTeXStrings, RCall
+row_names = [L"\{0\}", L"[-0.1, 0.1]", L"[-0.18, 0.18]", L"[-0.25, 0.25]", L"[-0.35, 0.35]"]
+@rput probs_res row_names
+R"""
+rownames(probs_res) = row_names
+knitr::kable(
+    probs_res, 'latex', booktabs = TRUE,
+    digits = 3,
+    col.names = c("A", "Lower", "Upper"),
+    escape = FALSE
+    )
+"""
