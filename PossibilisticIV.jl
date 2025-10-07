@@ -109,3 +109,11 @@ function possibilistic_contour(β_vec, lower, upper, W, Z)
 end
 
 
+
+## Upper and lower probabilities
+function upper_probability(lower_β, upper_β, lower_α, upper_α, W, Z)
+    f(b) = -first(possibilistic_contour([b], lower_α, upper_α, W, Z))
+    res = optimize(f, lower_β, upper_β)
+    return -Optim.minimum(res)
+end
+

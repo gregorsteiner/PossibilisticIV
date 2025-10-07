@@ -15,7 +15,7 @@ M_W = I - W * inv(W'W) * W'
 y, x, z = map(vec -> M_W * vec, (y_raw, x_raw, z_raw))
 
 # Create plot
-xx = -1:0.005:5
+xx = -5:0.005:5
 p = plot(
     xx, possibilistic_contour(xx, [0.0], [0.0], [y x], z),
     linewidth = 1.5,
@@ -33,3 +33,30 @@ hline!([0.05], linestyle = :dash, label = "", colour = :grey)
 
 savefig(p, "AJR_Possibility_Contour.pdf")
 
+# Compute upper and lower probabilities
+# for the hypothesis β > 0
+function compute_upper_lower(lower_α, upper_α, W, Z)
+    lower, upper = (1 - upper_probability(-1e10, 0.0, lower_α, upper_α, W, Z), upper_probability(0.0, 1e10, lower_α, upper_α, W, Z))
+    return [lower, upper]
+end
+
+
+probs_res = map(
+    (b) -> compute_upper_lower([-b], [b], [y x], z),
+    [0.0, 0.1, 0.18, 0.25, 0.35]
+) 
+probs_res = reduce(hcat, probs_res)'
+round.(probs_res; digits = 3)
+
+using LaTeXStrings, RCall
+row_names = [L"\{0\}", L"[-0.1, 0.1]", L"[-0.18, 0.18]", L"[-0.25, 0.25]", L"[-0.35, 0.35]"]
+@rput probs_res row_names
+R"""
+rownames(probs_res) = row_names
+knitr::kable(
+    probs_res, 'latex', booktabs = TRUE,
+    digits = 3,
+    col.names = c("A", "Lower", "Upper"),
+    escape = FALSE
+    )
+"""
