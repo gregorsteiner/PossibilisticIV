@@ -32,43 +32,70 @@ end
 ## conditional possibility of β ##
 using JuMP, OSQP, Optim 
 
-# unnormalised possibilistic conditional posterior (on log-scale)
-function conditional_possibility_unnormalised(β, lower, upper, W, Z) 
+# perform constrained optimisation over α
+function optimise_α(β, lower, upper, W, Z)
     p = size(Z, 2)
     Γ_ml = Z'Z \ Z'W
-    t = Γ_ml * [1.0; -β]
+    t = p == 1 ? [Γ_ml * [1.0; -β]] : Γ_ml * [1.0; -β] # make sure t is a vector even for p=1
 
-    ## Optimise over α ##
-    # If t is in the constraint set just use t
+    # If t is in the constraint set return t
     # Else use quadratic programming to find optimal α
     if all(lower .< t .< upper)
-        α_opt = t
+        return t
     else
         model = Model(OSQP.Optimizer)
         set_silent(model) # suppress any output
         @variable(model, lower[i] <= α[i=1:p] <= upper[i])
         @objective(model, Min, dot(α .- t, Z'Z, α .- t))
         optimize!(model)
-        α_opt = value(α) # extract optimal value
+        return value(α)
     end
+end
 
+# unnormalised possibilistic conditional posterior (on log-scale)
+function conditional_possibility_unnormalised(β, lower, upper, W, Z) 
+    α_opt = optimise_α(β, lower, upper, W, Z)
     return f_str(α_opt, β, W, Z)
 end
 
-# normalising constant
-function normalising_constant(lower, upper, W, Z; x0 = [1.0])
-    ## find optimal β to renormalise
-    h(β_int) = -conditional_possibility_unnormalised(β_int, lower, upper, W, Z)
-    res = optimize(x -> h(first(x)), x0)
-    β_opt = Optim.minimizer(res)
-
-    ## return normalising constant
-    return conditional_possibility_unnormalised(β_opt, lower, upper, W, Z)
+# optimise β given α
+# we use this function to iteratively optimise across both α and β
+function optimise_β(α, W, Z)
+    h(β) = -f_str(α, β, W, Z)
+    res = optimize(x -> h(first(x)), [1.0])
+    return first(Optim.minimizer(res))
 end
 
+# find normalising constant
+# by iterating across α and β
+function normalising_constant(lower, upper, W, Z; tol=1e-6, max_iter=100)
+    # Initialize β and α
+    β = 0.0
+    α = optimise_α(β, lower, upper, W, Z)
+
+    for iter in 1:max_iter
+        β_prev, α_prev = β, copy(α)
+
+        # Optimize β given α
+        β = optimise_β(α, W, Z)
+
+        # Optimize α given updated β
+        α = optimise_α(β, lower, upper, W, Z)
+
+        # Check convergence on both α and β
+        if norm(α - α_prev) < tol && abs(β - β_prev) < tol
+            break
+        end
+    end
+
+    # Return f_str evaluated at the optimal (α, β)
+    return f_str(α, β, W, Z)
+end
+
+
 # conditional possibilistic posterior (normalised on log-scale)
-function conditional_possibility(β_vec, lower, upper, W, Z; x0 = [1.0])
-    norm_const = normalising_constant(lower, upper, W, Z; x0 = x0)
+function conditional_possibility(β_vec, lower, upper, W, Z)
+    norm_const = normalising_constant(lower, upper, W, Z)
     cond_poss_β = [conditional_possibility_unnormalised(β, lower, upper, W, Z) - norm_const for β in β_vec]
     return cond_poss_β
 end
@@ -76,8 +103,8 @@ end
 
 ## Validification (Martin, 2025)
 ## We use the Wilk's style approximation
-function possibilistic_contour(β_vec, lower, upper, W, Z; x0 = [0.0])
-    cond_poss_β = conditional_possibility(β_vec, lower, upper, W, Z; x0 = x0)
+function possibilistic_contour(β_vec, lower, upper, W, Z)
+    cond_poss_β = conditional_possibility(β_vec, lower, upper, W, Z)
     return map(x -> 1 - cdf(Chisq(1), -2 * x), cond_poss_β)
 end
 
