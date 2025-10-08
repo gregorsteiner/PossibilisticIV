@@ -15,7 +15,7 @@ M_W = I - W * inv(W'W) * W'
 y, x, z = map(vec -> M_W * vec, (y_raw, x_raw, z_raw))
 
 # Create plot
-xx = -5:0.005:5
+xx = -1:0.005:5
 p = plot(
     xx, possibilistic_contour(xx, [0.0], [0.0], [y x], z),
     linewidth = 1.5,
@@ -40,8 +40,9 @@ function compute_upper_lower(lower_α, upper_α, W, Z)
     return [lower, upper]
 end
 
-
-probs_res = map(
+# benchmark the computational time
+using BenchmarkTools
+@btime probs_res = map(
     (b) -> compute_upper_lower([-b], [b], [y x], z),
     [0.0, 0.1, 0.18, 0.25, 0.35]
 ) 
@@ -60,3 +61,5 @@ knitr::kable(
     escape = FALSE
     )
 """
+
+

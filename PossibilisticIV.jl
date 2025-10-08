@@ -103,17 +103,20 @@ end
 
 ## Validification (Martin, 2025)
 ## We use the Wilk's style approximation
+chi_sq_approximation(x) = 1 - cdf(Chisq(1), -2 * x)
 function possibilistic_contour(β_vec, lower, upper, W, Z)
     cond_poss_β = conditional_possibility(β_vec, lower, upper, W, Z)
-    return map(x -> 1 - cdf(Chisq(1), -2 * x), cond_poss_β)
+    return map(chi_sq_approximation, cond_poss_β)
 end
 
 
 
 ## Upper and lower probabilities
 function upper_probability(lower_β, upper_β, lower_α, upper_α, W, Z)
-    f(b) = -first(possibilistic_contour([b], lower_α, upper_α, W, Z))
+    norm_const = normalising_constant(lower_α, upper_α, W, Z)
+    f(b) = -conditional_possibility_unnormalised(b, lower_α, upper_α, W, Z)
     res = optimize(f, lower_β, upper_β)
-    return -Optim.minimum(res)
+    β_opt = Optim.minimizer(res)
+    return chi_sq_approximation(-f(β_opt) - norm_const)
 end
 
