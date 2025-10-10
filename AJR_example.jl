@@ -63,3 +63,18 @@ knitr::kable(
 """
 
 
+# Compare approximation and more exact sampling scheme
+xx = -0.5:0.1:3
+p = plot(
+    xx, possibilistic_contour(xx, [-0.1], [0.1], [y x], z),
+    linewidth = 1.5,
+    xlabel = L"\beta", ylabel = "",
+    label = L"\chi^2",
+    size=(600, 300)
+)
+f_exact(b) = map(β -> possibilistic_contour_exact(β, [-0.1], [0.1], [y x], z; M = 1000), b)
+plot!(
+    xx, f_exact(xx),
+    linewidth = 1.5, linestyle = :dash,
+    label = "Direct sampling"
+)
