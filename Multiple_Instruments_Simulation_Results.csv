@@ -1,0 +1,10 @@
+Method,s = 0,s = 2,s = 3,s = 5
+Possibilistic IV $(A = \{0\})$,1.0,1.0,0.6,0.8
+"Possibilistic IV $(A = [-0.1, 0.1]^p)$",1.0,1.0,0.8,1.0
+"Possibilistic IV $(A = [0.0, 0.2]^p)$",0.8,1.0,1.0,1.0
+TSLS,1.0,0.8,0.4,0.4
+PGMM-g,1.0,1.0,0.8,1.0
+BudgetIV ($\alpha = 0$),1.0,1.0,1.0,1.0
+BudgetIV ($\lvert \alpha_i \rvert \leq 0.2$),1.0,1.0,1.0,1.0
+CIIV,1.0,0.8,0.4,0.4
+gIVBMA,1.0,1.0,0.6,1.0

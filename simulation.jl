@@ -58,17 +58,26 @@ function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
         coverage[7, i] =  check_coverage(budgetIV(Y, X, Z, 1/2, 1), true_β) # BudgetIV with budget 1/2
     end
 
-    return (Coverage = mean(coverage; dims = 2), Methods = methods)
+    return (Coverage = mean(coverage; dims = 2)[:, 1], Methods = methods, alpha = α)
 end
 
 
-# Run simulation
+## Run simulation ##
 m = 1000
 alphas = [0.0, 0.25, 0.5]
 
 Random.seed!(42)
 res = map(a -> run_simulation(m; α = a), alphas)
 
+## Save results ##
+using DataFrames, CSV
+df = DataFrame(Method = res[1].Methods)
+for scenario in res
+    name = "α = " * string(scenario.alpha)
+    df[!, name] = scenario.Coverage
+end
+
+CSV.write("Simulation_Results.csv", df)
 
 ## Create a table displaying the results ##
 function coverage_table_latex(res, alphas)
@@ -79,7 +88,7 @@ function coverage_table_latex(res, alphas)
     # Find the index of the value closest to 0.95 for each scenario (column)
     best_indices = []
     for j in 1:length(scenarios)
-        coverages = res[j].Coverage[:, 1]
+        coverages = res[j].Coverage
         # Compute distances to 0.95
         distances = [abs(c - 0.95) for c in coverages]
         # Find the index of the min distance (i.e., closest to 0.95)
