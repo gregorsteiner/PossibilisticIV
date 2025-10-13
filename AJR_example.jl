@@ -64,17 +64,31 @@ knitr::kable(
 
 
 # Compare approximation and more exact sampling scheme
-xx = -0.5:0.1:3
+xx = -0.1:0.01:3
 p = plot(
-    xx, possibilistic_contour(xx, [-0.1], [0.1], [y x], z),
+    xx, possibilistic_contour(xx, [-0.0], [0.0], [y x], z),
     linewidth = 1.5,
     xlabel = L"\beta", ylabel = "",
-    label = L"\chi^2",
+    label = L"\alpha = 0 \quad (\chi^2)",
     size=(600, 300)
 )
-f_exact(b) = map(β -> possibilistic_contour_exact(β, [-0.1], [0.1], [y x], z; M = 1000), b)
 plot!(
-    xx, f_exact(xx),
-    linewidth = 1.5, linestyle = :dash,
-    label = "Direct sampling"
+    xx, possibilistic_contour(xx, [-0.1], [0.1], [y x], z),
+    linewidth = 1.5, label = L"\alpha \in [-0.1, 0.1] \quad (\chi^2)"
 )
+
+xx_exact = -0.1:0.05:3
+f_exact(b, l, u) = map(β -> possibilistic_contour_exact(β, [l], [u], [y x], z; M = 1000), b)
+
+plot!(
+    xx_exact, f_exact(xx_exact, 0.0, 0.0),
+    linewidth = 1.5, linestyle = :dash, colour = 1,
+    label = L"\alpha = 0 \quad (MC)"
+)
+plot!(
+    xx_exact, f_exact(xx_exact, -0.1, 0.1),
+    linewidth = 1.5, linestyle = :dash, colour = 2,
+    label = L"\alpha \in [-0.1, 0.1] \quad (MC)"
+)
+
+savefig(p, "Possibility_Contour_Comparison.pdf")
