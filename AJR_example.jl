@@ -81,21 +81,19 @@ plot!(
     linewidth = 1.5, label = L"\alpha \in [-0.18, 0.18] \quad (\chi^2)"
 )
 
-xx_exact = -0.1:0.05:3
-f_exact(b, l, u) = map(β -> possibilistic_contour_exact(β, [l], [u], [y x], z; M = 1000), b)
-
+xx_exact = -0.1:0.05:3 # use less fine grid to save computation
 plot!(
-    xx_exact, f_exact(xx_exact, 0.0, 0.0),
+    xx_exact, possibilistic_contour(xx_exact, [-0.0], [0.0], [y x], z; type = "MC"),
     linewidth = 1.5, linestyle = :dash, colour = 1,
     label = L"\alpha = 0 \quad (MC)"
 )
 plot!(
-    xx_exact, f_exact(xx_exact, -0.1, 0.1),
+    xx_exact, possibilistic_contour(xx_exact, [-0.1], [0.1], [y x], z; type = "MC"),
     linewidth = 1.5, linestyle = :dash, colour = 2,
     label = L"\alpha \in [-0.1, 0.1] \quad (MC)"
 )
 plot!(
-    xx_exact, f_exact(xx_exact, -0.18, 0.18),
+    xx_exact, possibilistic_contour(xx_exact, [-0.18], [0.18], [y x], z; type = "MC"),
     linewidth = 1.5, linestyle = :dash, colour = 3,
     label = L"\alpha \in [-0.18, 0.18] \quad (MC)"
 )
