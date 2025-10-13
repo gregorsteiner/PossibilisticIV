@@ -63,3 +63,39 @@ knitr::kable(
 """
 
 
+# Compare approximation and more exact sampling scheme
+xx = -0.1:0.01:3
+p = plot(
+    xx, possibilistic_contour(xx, [-0.0], [0.0], [y x], z),
+    linewidth = 1.5,
+    xlabel = L"\beta", ylabel = "",
+    label = L"\alpha = 0 \quad (\chi^2)",
+    size=(600, 300)
+)
+plot!(
+    xx, possibilistic_contour(xx, [-0.1], [0.1], [y x], z),
+    linewidth = 1.5, label = L"\alpha \in [-0.1, 0.1] \quad (\chi^2)"
+)
+plot!(
+    xx, possibilistic_contour(xx, [-0.18], [0.18], [y x], z),
+    linewidth = 1.5, label = L"\alpha \in [-0.18, 0.18] \quad (\chi^2)"
+)
+
+xx_exact = -0.1:0.05:3 # use less fine grid to save computation
+plot!(
+    xx_exact, possibilistic_contour(xx_exact, [-0.0], [0.0], [y x], z; type = "MC"),
+    linewidth = 1.5, linestyle = :dash, colour = 1,
+    label = L"\alpha = 0 \quad (MC)"
+)
+plot!(
+    xx_exact, possibilistic_contour(xx_exact, [-0.1], [0.1], [y x], z; type = "MC"),
+    linewidth = 1.5, linestyle = :dash, colour = 2,
+    label = L"\alpha \in [-0.1, 0.1] \quad (MC)"
+)
+plot!(
+    xx_exact, possibilistic_contour(xx_exact, [-0.18], [0.18], [y x], z; type = "MC"),
+    linewidth = 1.5, linestyle = :dash, colour = 3,
+    label = L"\alpha \in [-0.18, 0.18] \quad (MC)"
+)
+
+savefig(p, "Possibility_Contour_Comparison.pdf")

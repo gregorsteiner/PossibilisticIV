@@ -102,16 +102,55 @@ end
 
 
 ## Validification (Martin, 2025)
-## We use the Wilk's style approximation
+# Based on the Wilk's style χ^2 approximation
 chi_sq_approximation(x) = 1 - cdf(Chisq(1), -2 * x)
-function possibilistic_contour(β_vec, lower, upper, W, Z)
-    cond_poss_β = conditional_possibility(β_vec, lower, upper, W, Z)
-    return map(chi_sq_approximation, cond_poss_β)
+
+# We also try the more expensive direct sampling
+function simulate_W(β, γ_2_ml, Ψ_ml, α_opt, Z)
+    n = size(Z, 1)
+
+    Σ = [1.0 -β; 0.0 1.0] * Ψ_ml * [1.0 -β; 0.0 1.0]'
+    u = rand(MvNormal(zeros(2), Σ), n)'
+
+    X = Z[:, :] * γ_2_ml + u[:, 2]
+    Y = β * X + Z[:, :] * α_opt + u[:, 1]
+    return [Y X]
 end
 
+function mc_exact(β, lower, upper, W, Z; M = 1000)
+    # compute parameters needed
+    Γ_ml = Z'Z \ Z'W
+    γ_2_ml = Γ_ml[:, 2]
+    Ψ_ml = (W - Z * Γ_ml)' * (W - Z * Γ_ml) / size(W, 1)
+    α = optimise_α(β, lower, upper, W, Z)
 
+    # compute possibility under the actually observed data
+    actual_possibility = conditional_possibility_unnormalised(β, lower, upper, W, Z)
+
+    # initialise storage vector and run loop
+    bool_check = Vector{Bool}(undef, M)
+    for i in 1:M
+        W_new = simulate_W(β, γ_2_ml, Ψ_ml, α, Z)
+        new_possibility = conditional_possibility_unnormalised(β, lower, upper, W_new, Z)
+        bool_check[i] = new_possibility <= actual_possibility
+    end
+    return mean(bool_check)
+end
+
+# Evaluate possibilistic contour at vector of input values
+function possibilistic_contour(β_vec, lower, upper, W, Z; type = "Chisq", M = 1000)
+    if type == "Chisq"
+        cond_poss_β = conditional_possibility(β_vec, lower, upper, W, Z)
+        return map(chi_sq_approximation, cond_poss_β)
+    elseif type == "MC"
+        res = map(b -> mc_exact(b, lower, upper, W, Z; M = M), β_vec)
+        return res
+    end
+    error("Invalid type argument.")
+end
 
 ## Upper and lower probabilities
+# CUrrently only based on the χ^2 approximation
 function upper_probability(lower_β, upper_β, lower_α, upper_α, W, Z)
     norm_const = normalising_constant(lower_α, upper_α, W, Z)
     f(b) = -conditional_possibility_unnormalised(b, lower_α, upper_α, W, Z)
