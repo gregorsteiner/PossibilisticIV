@@ -40,10 +40,10 @@ function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
     true_β = 1.0
 
     # start iterating
-    for i in 1:m
+    # use a parallel loop for all native julia methods
+    Threads.@threads for i in 1:m
         # simulate data
         Y, X, Z = generate_data(n, ρ, α; β = true_β)
-
         # centre data
         Y, X = (Y .- mean(Y), X .- mean(X))
 
@@ -58,6 +58,17 @@ function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
         # Compute coverage for all cometing methods
         coverage[6, i] = check_coverage(tsls(Y, X, Z), true_β) # Naive TSLS
         coverage[7, i] = check_coverage(pgmm(Y, X, Z, I), true_β) # PGMM
+    end
+
+    # separate loop for the R-based methods
+    # they are not multi-thread compatible
+    for i in 1:m
+        # simulate data
+        Y, X, Z = generate_data(n, ρ, α; β = true_β)
+        # centre data
+        Y, X = (Y .- mean(Y), X .- mean(X))
+        
+        # compute coverage
         coverage[8, i] =  check_coverage(budgetIV(Y, X, Z, 0.0, 1), true_β) # BudgetIV with budget 0
         coverage[9, i] =  check_coverage(budgetIV(Y, X, Z, 1/2, 1), true_β) # BudgetIV with budget 1/2
     end
