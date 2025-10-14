@@ -22,9 +22,11 @@ end
 function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
     # different methods
     methods = [
-        L"Possibilistic IV $(A = \{0\})$",
-        L"Possibilistic IV $(A = [-0.5, 0.5])$",
-        L"Possibilistic IV $(A = [0.0, 0.5])$",
+        L"Possibilistic IV ($A = \{0\}, \chi^2$-Appr.)",
+        L"Possibilistic IV ($A = [-0.5, 0.5], \chi^2$-Appr.)",
+        L"Possibilistic IV ($A = [-0.5, 0.5]$, MC)",
+        L"Possibilistic IV ($A = [0.0, 0.5], \chi^2$-Appr.)",
+        L"Possibilistic IV ($A = [0.0, 0.5]$, MC)",
         "TSLS",
         "PGMM-g",
         L"BudgetIV ($\alpha = 0$)",
@@ -49,13 +51,15 @@ function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
         # possibilistic contour at the true value must be > 0.05
         coverage[1, i] = first(possibilistic_contour([true_β], 0.0, 0.0, [Y X], Z)) > 0.05
         coverage[2, i] = first(possibilistic_contour([true_β], -1/2, 1/2, [Y X], Z)) > 0.05
-        coverage[3, i] = first(possibilistic_contour([true_β], -0.0, 1/2, [Y X], Z)) > 0.05
+        coverage[3, i] = first(possibilistic_contour([true_β], -1/2, 1/2, [Y X], Z; type = "MC")) > 0.05
+        coverage[4, i] = first(possibilistic_contour([true_β], -0.0, 1/2, [Y X], Z)) > 0.05
+        coverage[5, i] = first(possibilistic_contour([true_β], -0.0, 1/2, [Y X], Z; type = "MC")) > 0.05
 
         # Compute coverage for all cometing methods
-        coverage[4, i] = check_coverage(tsls(Y, X, Z), true_β) # Naive TSLS
-        coverage[5, i] = check_coverage(pgmm(Y, X, Z, I), true_β) # PGMM
-        coverage[6, i] =  check_coverage(budgetIV(Y, X, Z, 0.0, 1), true_β) # BudgetIV with budget 0
-        coverage[7, i] =  check_coverage(budgetIV(Y, X, Z, 1/2, 1), true_β) # BudgetIV with budget 1/2
+        coverage[6, i] = check_coverage(tsls(Y, X, Z), true_β) # Naive TSLS
+        coverage[7, i] = check_coverage(pgmm(Y, X, Z, I), true_β) # PGMM
+        coverage[8, i] =  check_coverage(budgetIV(Y, X, Z, 0.0, 1), true_β) # BudgetIV with budget 0
+        coverage[9, i] =  check_coverage(budgetIV(Y, X, Z, 1/2, 1), true_β) # BudgetIV with budget 1/2
     end
 
     return (Coverage = mean(coverage; dims = 2)[:, 1], Methods = methods, alpha = α)
