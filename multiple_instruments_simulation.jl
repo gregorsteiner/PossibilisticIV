@@ -74,7 +74,7 @@ end
 
 
 ## Run simulation ##
-m = 5
+m = 500
 ss = [0, 2, 3, 5]
 Random.seed!(42)
 res = map(s -> run_simulation(s; m = m), ss)
