@@ -15,23 +15,22 @@ M_W = I - W * inv(W'W) * W'
 y, x, z = map(vec -> M_W * vec, (y_raw, x_raw, z_raw))
 
 # Create plot
-xx = -1:0.005:5
-p = plot(
-    xx, possibilistic_contour(xx, [0.0], [0.0], [y x], z),
+xx = -10:0.01:10
+p1 = plot(
+    xx, log.(possibilistic_contour(xx, [0.0], [0.0], [y x], z)),
     linewidth = 1.5,
-    xlabel = L"\beta", ylabel = "",
+    xlabel = L"\beta", ylabel = L"\log \pi_w(\beta \mid A)",
     label = L"\alpha = 0",
-    size=(600, 300)
+    legend = :topleft,
+    size=(400, 300)
 )
-plot!(xx, possibilistic_contour(xx, [-0.1], [0.1], [y x], z), linewidth = 1.5, label = L"\alpha \in [-0.1, 0.1]")
-plot!(xx, possibilistic_contour(xx, [-0.18], [0.18], [y x], z), linewidth = 1.5, label = L"\alpha \in [-0.18, 0.18]")
-plot!(xx, exp.(conditional_possibility(xx, [0.0], [0.0], [y x], z)), linestyle = :dash, linewidth = 1.5, color = 1, label = "")
-plot!(xx, exp.(conditional_possibility(xx, [-0.1], [0.1], [y x], z)), linestyle = :dash, linewidth = 1.5, color = 2, label = "")
-plot!(xx, exp.(conditional_possibility(xx, [-0.18], [0.18], [y x], z)), linestyle = :dash, linewidth = 1.5, color = 3, label = "")
+plot!(xx, log.(possibilistic_contour(xx, [-0.1], [0.1], [y x], z)), linewidth = 1.5, label = L"\alpha \in [-0.1, 0.1]")
+plot!(xx, log.(possibilistic_contour(xx, [-0.18], [0.18], [y x], z)), linewidth = 1.5, label = L"\alpha \in [-0.18, 0.18]")
 
-hline!([0.05], linestyle = :dash, label = "", colour = :grey)
+hline!([log(0.05)], linestyle = :dash, label = "", colour = :grey)
 
-savefig(p, "AJR_Possibility_Contour.pdf")
+savefig(p1, "AJR_Possibility_Contour.pdf")
+
 
 # Compute upper and lower probabilities
 # for the hypothesis β > 0
@@ -65,12 +64,13 @@ knitr::kable(
 
 # Compare approximation and more exact sampling scheme
 xx = -0.1:0.01:3
-p = plot(
+p2 = plot(
     xx, possibilistic_contour(xx, [-0.0], [0.0], [y x], z),
     linewidth = 1.5,
-    xlabel = L"\beta", ylabel = "",
+    xlabel = L"\beta", ylabel = L"\pi_w(\beta \mid A)",
     label = L"\alpha = 0 \quad (\chi^2)",
-    size=(600, 300)
+    legend = false,
+    size=(400, 300)
 )
 plot!(
     xx, possibilistic_contour(xx, [-0.1], [0.1], [y x], z),
@@ -97,5 +97,7 @@ plot!(
     linewidth = 1.5, linestyle = :dash, colour = 3,
     label = L"\alpha \in [-0.18, 0.18] \quad (MC)"
 )
+hline!([0.05], linestyle = :dash, label = "", colour = :grey)
 
-savefig(p, "Possibility_Contour_Comparison.pdf")
+
+savefig(p2, "Possibility_Contour_Comparison.pdf")
