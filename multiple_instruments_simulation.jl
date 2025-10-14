@@ -31,10 +31,10 @@ function run_simulation(s; m = 100, n = 100, ρ = 1/2, p = 5)
         L"Possibilistic IV ($A = [0.0, 0.2]^p$, MC)",
         "TSLS",
         "PGMM-g",
+        "gIVBMA",
         L"BudgetIV ($\alpha = 0$)",
         L"BudgetIV ($\lvert \alpha_i \rvert \leq 0.2$)",
-        "CIIV",
-        "gIVBMA"
+        "CIIV"
         ]
     
     # storage objects
@@ -44,10 +44,9 @@ function run_simulation(s; m = 100, n = 100, ρ = 1/2, p = 5)
     true_β = 1.0
 
     # start iterating
-    for i in 1:m
+    Threads.@threads for i in 1:m
         # simulate data
         Y, X, Z = generate_data(n, s; ρ = ρ, β = true_β, p = p)
-
         # centre data
         Y, X = (Y .- mean(Y), X .- mean(X))
 
@@ -62,11 +61,19 @@ function run_simulation(s; m = 100, n = 100, ρ = 1/2, p = 5)
         # compute coverage for competing methods
         coverage[6, i] = check_coverage(tsls(Y, X, Z), true_β) # Naive TSLS
         coverage[7, i] = check_coverage(pgmm(Y, X, Z, I), true_β) # PGMM
-        coverage[8, i] =  check_coverage(budgetIV(Y, X, Z, 0.0, 1), true_β) # BudgetIV with budget 0
-        coverage[9, i] =  check_coverage(budgetIV(Y, X, Z, 0.2, 1), true_β) # BudgetIV with budget 1/2
-        coverage[10, i] = check_coverage(ciiv(Y, X, Z), true_β) # CIIV
         fit_givbma = givbma(Y, X, Z; g_prior = "hyper-g/n", iter = 1000, burn = 100) # gIVBMA
-        coverage[11, i] = check_coverage(rbw(fit_givbma)[1], true_β)
+        coverage[8, i] = check_coverage(rbw(fit_givbma)[1], true_β)        
+    end
+
+    for i in 1:m
+        # simulate data
+        Y, X, Z = generate_data(n, s; ρ = ρ, β = true_β, p = p)
+        # centre data
+        Y, X = (Y .- mean(Y), X .- mean(X))
+        # compute coverage
+        coverage[9, i] =  check_coverage(budgetIV(Y, X, Z, 0.0, 1), true_β) # BudgetIV with budget 0
+        coverage[10, i] =  check_coverage(budgetIV(Y, X, Z, 0.2, 1), true_β) # BudgetIV with budget 1/2
+        coverage[11, i] = check_coverage(ciiv(Y, X, Z), true_β) # CIIV
     end
 
     return (Coverage = mean(coverage; dims = 2)[:, 1], Methods = methods, s = s)
