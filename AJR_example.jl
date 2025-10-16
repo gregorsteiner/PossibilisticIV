@@ -21,15 +21,54 @@ p1 = plot(
     linewidth = 1.5,
     xlabel = L"\beta", ylabel = L"\log \pi_w(\beta \mid A)",
     label = L"\alpha = 0",
-    legend = :topleft,
-    size=(400, 300)
+    legend = :topleft
 )
 plot!(xx, log.(possibilistic_contour(xx, [-0.1], [0.1], [y x], z)), linewidth = 1.5, label = L"\alpha \in [-0.1, 0.1]")
 plot!(xx, log.(possibilistic_contour(xx, [-0.18], [0.18], [y x], z)), linewidth = 1.5, label = L"\alpha \in [-0.18, 0.18]")
 
 hline!([log(0.05)], linestyle = :dash, label = "", colour = :grey)
 
-savefig(p1, "AJR_Possibility_Contour.pdf")
+
+# Compare approximation and more exact sampling scheme
+xx = -0.1:0.01:3
+p2 = plot(
+    xx, possibilistic_contour(xx, [-0.0], [0.0], [y x], z),
+    linewidth = 1.5,
+    xlabel = L"\beta", ylabel = L"\pi_w(\beta \mid A)",
+    label = L"\alpha = 0 \quad (\chi^2)",
+    legend = false
+)
+plot!(
+    xx, possibilistic_contour(xx, [-0.1], [0.1], [y x], z),
+    linewidth = 1.5, label = L"\alpha \in [-0.1, 0.1] \quad (\chi^2)"
+)
+plot!(
+    xx, possibilistic_contour(xx, [-0.18], [0.18], [y x], z),
+    linewidth = 1.5, label = L"\alpha \in [-0.18, 0.18] \quad (\chi^2)"
+)
+
+xx_exact = -0.1:0.05:3 # use less fine grid to save computation
+plot!(
+    xx_exact, possibilistic_contour(xx_exact, [-0.0], [0.0], [y x], z; type = "MC"),
+    linewidth = 1.5, linestyle = :dash, colour = 1,
+    label = L"\alpha = 0 \quad (MC)"
+)
+plot!(
+    xx_exact, possibilistic_contour(xx_exact, [-0.1], [0.1], [y x], z; type = "MC"),
+    linewidth = 1.5, linestyle = :dash, colour = 2,
+    label = L"\alpha \in [-0.1, 0.1] \quad (MC)"
+)
+plot!(
+    xx_exact, possibilistic_contour(xx_exact, [-0.18], [0.18], [y x], z; type = "MC"),
+    linewidth = 1.5, linestyle = :dash, colour = 3,
+    label = L"\alpha \in [-0.18, 0.18] \quad (MC)"
+)
+hline!([0.05], linestyle = :dash, label = "", colour = :grey)
+
+
+# save both plots
+p = plot(p1, p2, size=(660, 300))
+savefig(p, "AJR_Possibility_Contour.pdf")
 
 
 # Compute upper and lower probabilities
@@ -62,42 +101,3 @@ knitr::kable(
 """
 
 
-# Compare approximation and more exact sampling scheme
-xx = -0.1:0.01:3
-p2 = plot(
-    xx, possibilistic_contour(xx, [-0.0], [0.0], [y x], z),
-    linewidth = 1.5,
-    xlabel = L"\beta", ylabel = L"\pi_w(\beta \mid A)",
-    label = L"\alpha = 0 \quad (\chi^2)",
-    legend = false,
-    size=(400, 300)
-)
-plot!(
-    xx, possibilistic_contour(xx, [-0.1], [0.1], [y x], z),
-    linewidth = 1.5, label = L"\alpha \in [-0.1, 0.1] \quad (\chi^2)"
-)
-plot!(
-    xx, possibilistic_contour(xx, [-0.18], [0.18], [y x], z),
-    linewidth = 1.5, label = L"\alpha \in [-0.18, 0.18] \quad (\chi^2)"
-)
-
-xx_exact = -0.1:0.05:3 # use less fine grid to save computation
-plot!(
-    xx_exact, possibilistic_contour(xx_exact, [-0.0], [0.0], [y x], z; type = "MC"),
-    linewidth = 1.5, linestyle = :dash, colour = 1,
-    label = L"\alpha = 0 \quad (MC)"
-)
-plot!(
-    xx_exact, possibilistic_contour(xx_exact, [-0.1], [0.1], [y x], z; type = "MC"),
-    linewidth = 1.5, linestyle = :dash, colour = 2,
-    label = L"\alpha \in [-0.1, 0.1] \quad (MC)"
-)
-plot!(
-    xx_exact, possibilistic_contour(xx_exact, [-0.18], [0.18], [y x], z; type = "MC"),
-    linewidth = 1.5, linestyle = :dash, colour = 3,
-    label = L"\alpha \in [-0.18, 0.18] \quad (MC)"
-)
-hline!([0.05], linestyle = :dash, label = "", colour = :grey)
-
-
-savefig(p2, "Possibility_Contour_Comparison.pdf")
