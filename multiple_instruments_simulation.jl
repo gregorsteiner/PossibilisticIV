@@ -25,6 +25,7 @@ function run_simulation(s; m = 100, n = 100, ρ = 1/2, p = 5)
     # different methods
     methods = [
         L"Possibilistic IV ($A = \{0\}, \chi^2$-Appr.)",
+        L"Possibilistic IV ($A = \{0\}$, MC)",
         L"Possibilistic IV ($A = [-0.1, 0.1]^p, \chi^2$-Appr.)",
         L"Possibilistic IV ($A = [-0.1, 0.1]^p$, MC)",
         L"Possibilistic IV ($A = [0.0, 0.2]^p, \chi^2$-Appr.)",
@@ -53,16 +54,17 @@ function run_simulation(s; m = 100, n = 100, ρ = 1/2, p = 5)
         # compute coverage
         # possibilistic contour at the true value must be > 0.05
         coverage[1, i] = first(possibilistic_contour(true_β, zeros(p), zeros(p), [Y X], Z)) > 0.05
-        coverage[2, i] = first(possibilistic_contour(true_β, -0.1 * ones(p), 0.1 * ones(p), [Y X], Z)) > 0.05
-        coverage[3, i] = first(possibilistic_contour(true_β, -0.1 * ones(p), 0.1 * ones(p), [Y X], Z; type = "MC")) > 0.05
-        coverage[4, i] = first(possibilistic_contour(true_β, -0.0 * ones(p), 0.2 * ones(p), [Y X], Z)) > 0.05
-        coverage[5, i] = first(possibilistic_contour(true_β, -0.0 * ones(p), 0.2 * ones(p), [Y X], Z; type = "MC")) > 0.05
+        coverage[2, i] = first(possibilistic_contour(true_β, zeros(p), zeros(p), [Y X], Z; type = "MC")) > 0.05
+        coverage[3, i] = first(possibilistic_contour(true_β, -0.1 * ones(p), 0.1 * ones(p), [Y X], Z)) > 0.05
+        coverage[4, i] = first(possibilistic_contour(true_β, -0.1 * ones(p), 0.1 * ones(p), [Y X], Z; type = "MC")) > 0.05
+        coverage[5, i] = first(possibilistic_contour(true_β, -0.0 * ones(p), 0.2 * ones(p), [Y X], Z)) > 0.05
+        coverage[6, i] = first(possibilistic_contour(true_β, -0.0 * ones(p), 0.2 * ones(p), [Y X], Z; type = "MC")) > 0.05
 
         # compute coverage for competing methods
-        coverage[6, i] = check_coverage(tsls(Y, X, Z), true_β) # Naive TSLS
-        coverage[7, i] = check_coverage(pgmm(Y, X, Z, I), true_β) # PGMM
+        coverage[7, i] = check_coverage(tsls(Y, X, Z), true_β) # Naive TSLS
+        coverage[8, i] = check_coverage(pgmm(Y, X, Z, I), true_β) # PGMM
         fit_givbma = givbma(Y, X, Z; g_prior = "hyper-g/n", iter = 1000, burn = 100) # gIVBMA
-        coverage[8, i] = check_coverage(rbw(fit_givbma)[1], true_β)        
+        coverage[9, i] = check_coverage(rbw(fit_givbma)[1], true_β)        
     end
 
     for i in 1:m
@@ -71,9 +73,9 @@ function run_simulation(s; m = 100, n = 100, ρ = 1/2, p = 5)
         # centre data
         Y, X = (Y .- mean(Y), X .- mean(X))
         # compute coverage
-        coverage[9, i] =  check_coverage(budgetIV(Y, X, Z, 0.0, 1), true_β) # BudgetIV with budget 0
-        coverage[10, i] =  check_coverage(budgetIV(Y, X, Z, 0.2, 1), true_β) # BudgetIV with budget 1/2
-        coverage[11, i] = check_coverage(ciiv(Y, X, Z), true_β) # CIIV
+        coverage[10, i] =  check_coverage(budgetIV(Y, X, Z, 0.0, 1), true_β) # BudgetIV with budget 0
+        coverage[11, i] =  check_coverage(budgetIV(Y, X, Z, 0.2, 1), true_β) # BudgetIV with budget 1/2
+        coverage[12, i] = check_coverage(ciiv(Y, X, Z), true_β) # CIIV
     end
 
     return (Coverage = mean(coverage; dims = 2)[:, 1], Methods = methods, s = s)

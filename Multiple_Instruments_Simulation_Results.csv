@@ -1,12 +1,13 @@
 Method,s = 0,s = 2,s = 3,s = 5
-"Possibilistic IV ($A = \{0\}, \chi^2$-Appr.)",0.936,0.854,0.708,0.396
-"Possibilistic IV ($A = [-0.1, 0.1]^p, \chi^2$-Appr.)",0.986,0.97,0.912,0.796
-"Possibilistic IV ($A = [-0.1, 0.1]^p$, MC)",0.994,0.974,0.956,0.918
-"Possibilistic IV ($A = [0.0, 0.2]^p, \chi^2$-Appr.)",0.846,0.952,0.974,0.988
-"Possibilistic IV ($A = [0.0, 0.2]^p$, MC)",0.932,0.956,0.966,0.992
-TSLS,0.914,0.738,0.528,0.248
-PGMM-g,0.98,0.934,0.818,0.578
-gIVBMA,0.932,0.95,0.93,0.746
+"Possibilistic IV ($A = \{0\}, \chi^2$-Appr.)",0.924,0.836,0.738,0.406
+"Possibilistic IV ($A = \{0\}, MC)",0.954,0.842,0.782,0.674
+"Possibilistic IV ($A = [-0.1, 0.1]^p, \chi^2$-Appr.)",0.992,0.94,0.932,0.82
+"Possibilistic IV ($A = [-0.1, 0.1]^p$, MC)",0.996,0.954,0.962,0.926
+"Possibilistic IV ($A = [0.0, 0.2]^p, \chi^2$-Appr.)",0.854,0.942,0.97,0.992
+"Possibilistic IV ($A = [0.0, 0.2]^p$, MC)",0.938,0.956,0.964,0.996
+TSLS,0.918,0.72,0.562,0.262
+PGMM-g,0.978,0.918,0.832,0.526
+gIVBMA,0.928,0.942,0.926,0.744
 BudgetIV ($\alpha = 0$),0.996,0.99,0.984,0.992
 BudgetIV ($\lvert \alpha_i \rvert \leq 0.2$),1.0,1.0,1.0,1.0
 CIIV,0.908,0.71,0.508,0.256
