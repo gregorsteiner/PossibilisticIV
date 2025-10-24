@@ -73,15 +73,16 @@ savefig(p, "AJR_Possibility_Contour.pdf")
 
 # Compute upper and lower probabilities
 # for the hypothesis β > 0
-function compute_upper_lower(lower_α, upper_α, W, Z)
-    lower, upper = (1 - upper_probability(-1e10, 0.0, lower_α, upper_α, W, Z), upper_probability(0.0, 1e10, lower_α, upper_α, W, Z))
+function compute_upper_lower(lower_α, upper_α, W, Z; type = "Chisq", M = 1000)
+    lower, upper = (
+        1 - upper_probability(-1e10, 0.0, lower_α, upper_α, W, Z; type = type, M = M),
+        upper_probability(0.0, 1e10, lower_α, upper_α, W, Z; type = type, M = M)
+        )
     return [lower, upper]
 end
 
-# benchmark the computational time
-using BenchmarkTools
-@btime probs_res = map(
-    (b) -> compute_upper_lower([-b], [b], [y x], z),
+probs_res = map(
+    (b) -> compute_upper_lower([-b], [b], [y x], z; type = "MC", M = 10000),
     [0.0, 0.1, 0.18, 0.25, 0.35]
 ) 
 probs_res = reduce(hcat, probs_res)'
