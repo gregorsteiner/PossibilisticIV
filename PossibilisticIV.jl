@@ -110,7 +110,10 @@ function simulate_W(β, γ_2_ml, Ψ_ml, α_opt, Z)
     n = size(Z, 1)
 
     Σ = [1.0 -β; 0.0 1.0] * Ψ_ml * [1.0 -β; 0.0 1.0]'
-    u = rand(MvNormal(zeros(2), Σ), n)'
+
+    # We add a small diagonal matrix for numerical stability
+    # otherwise the matrix becomes singular for ver large β
+    u = rand(MvNormal(zeros(2), Hermitian(Σ + 1e-8 * I)), n)'
 
     X = Z[:, :] * γ_2_ml + u[:, 2]
     Y = β * X + Z[:, :] * α_opt + u[:, 1]
@@ -150,12 +153,16 @@ function possibilistic_contour(β_vec, lower, upper, W, Z; type = "Chisq", M = 1
 end
 
 ## Upper and lower probabilities
-# CUrrently only based on the χ^2 approximation
-function upper_probability(lower_β, upper_β, lower_α, upper_α, W, Z)
+function upper_probability(lower_β, upper_β, lower_α, upper_α, W, Z; type = "Chisq", M = 1000)
     norm_const = normalising_constant(lower_α, upper_α, W, Z)
     f(b) = -conditional_possibility_unnormalised(b, lower_α, upper_α, W, Z)
     res = optimize(f, lower_β, upper_β)
     β_opt = Optim.minimizer(res)
-    return chi_sq_approximation(-f(β_opt) - norm_const)
+    if type == "Chisq"
+        return chi_sq_approximation(-f(β_opt) - norm_const)
+    elseif type == "MC"
+        return mc_exact(β_opt, lower_α, upper_α, W, Z; M = M)
+    end
+    error("Invalid type argument.")
 end
 
