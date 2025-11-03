@@ -82,7 +82,7 @@ function compute_upper_lower(lower_α, upper_α, W, Z; type = "Chisq", M = 1000)
 end
 
 probs_res = map(
-    (b) -> compute_upper_lower([-b], [b], [y x], z; type = "MC", M = 10000),
+    (b) -> compute_upper_lower([-b], [b], [y x], z; type = "MC", M = 20000),
     [0.0, 0.1, 0.18, 0.25, 0.35]
 ) 
 probs_res = reduce(hcat, probs_res)'
