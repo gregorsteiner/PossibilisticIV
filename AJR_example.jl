@@ -16,7 +16,7 @@ y, x, z = map(vec -> M_W * vec, (y_raw, x_raw, z_raw))
 
 
 # Create plot with results (both approximation and more exact sampling scheme)
-xx = -0.1:0.01:2.2
+xx = -0.1:0.01:2.5
 p = plot(
     xx, possibilistic_contour(xx, [-0.0], [0.0], [y x], z),
     linewidth = 1.5,
@@ -28,8 +28,12 @@ plot!(
     xx, possibilistic_contour(xx, [-0.1], [0.1], [y x], z),
     linewidth = 1.5, label = L"A = [-0.1, 0.1]"
 )
+plot!(
+    xx, possibilistic_contour(xx, [-0.4], [0.4], [y x], z),
+    linewidth = 1.5, label = L"A = [-0.4, 0.4]"
+)
 
-xx_exact = -0.1:0.02:2.2 # use less fine grid to save computation
+xx_exact = -0.1:0.02:2.5 # use less fine grid to save computation
 plot!(
     xx_exact, possibilistic_contour(xx_exact, [-0.0], [0.0], [y x], z; type = "MC"),
     linewidth = 1.5, linestyle = :dash, colour = 1,
@@ -40,16 +44,16 @@ plot!(
     linewidth = 1.5, linestyle = :dash, colour = 2,
     label = ""
 )
+plot!(
+    xx_exact, possibilistic_contour(xx_exact, [-0.4], [0.4], [y x], z; type = "MC"),
+    linewidth = 1.5, linestyle = :dash, colour = 3,
+    label = ""
+)
 hline!([0.05], linestyle = :dash, label = "", colour = :grey)
-
-# add PGMM-g for comparison
-#d_pgmm = pgmm(y, x, z, 0.05 * mean(z_raw.^2) * I)
-#plot!(xx, pdf(d_pgmm, xx), label = L"\mathrm{PGMM\textnormal{-}g}", linewidth = 1.5)
-
 
 
 # save both plots
-p = plot(p, size=(500, 250))
+p = plot(p, size=(600, 300), legend = :outerbottom, legend_column = 3, bottom_margin=-4Plots.mm)
 savefig(p, "AJR_Possibility_Contour.pdf")
 
 
@@ -63,6 +67,10 @@ println(
 println(
     "95%-Interval for A = [-0.1, 0.1]: " *
     string(round.((find_zero(r -> f(r, a = 0.1), 0.6), find_zero(r -> f(r, a = 0.1), 1.4)), digits = 2))
+)
+println(
+    "95%-Interval for A = [-0.4, 0.4]: " *
+    string(round.((find_zero(r -> f(r, a = 0.4), 0.0), find_zero(r -> f(r, a = 0.4), 2.5)), digits = 2))
 )
 
 
