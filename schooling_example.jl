@@ -28,11 +28,11 @@ X = M_U * d.educ
 Z = M_U * d.nearc4
 
 # calibrate violation set
-Z'Z \ Z'y .- Z'Z \ Z'X * [0.05, 0.2]
+Z'Z \ Z'y .- Z'Z \ Z'X * 0.0
 
 
 # Run analysis
-xx = -0.05:0.001:0.35
+xx = -0.1:0.001:0.3
 p = plot(
     xx, possibilistic_contour(xx, [-0.0], [0.0], [y X], Z),
     linewidth = 1.5,
@@ -41,25 +41,25 @@ p = plot(
     legend = true
 )
 plot!(
-    xx, possibilistic_contour(xx, [-0.002], [0.012], [y X], Z),
-    linewidth = 1.5, label = L"A = [-0.002, 0.012]"
+    xx, possibilistic_contour(xx, [0], [0.02], [y X], Z),
+    linewidth = 1.5, label = L"A = [0, 0.02]"
 )
 plot!(
-    xx, possibilistic_contour(xx, [-0.004], [0.024], [y X], Z),
-    linewidth = 1.5, label = L"A = [-0.004, 0.024]"
+    xx, possibilistic_contour(xx, [0], [0.04], [y X], Z),
+    linewidth = 1.5, label = L"A = [0, 0.04]"
 )
 
-xx_exact = -0.05:0.005:0.35
+xx_exact = -0.1:0.005:0.3
 plot!(
     xx_exact, possibilistic_contour(xx_exact, [-0.0], [0.0], [y X], Z; type = "MC"),
     linewidth = 1.5, linestyle = :dash, colour = 1, label = ""
 )
 plot!(
-    xx_exact, possibilistic_contour(xx_exact, [-0.002], [0.012], [y X], Z; type = "MC"),
+    xx_exact, possibilistic_contour(xx_exact, [-0.0], [0.02], [y X], Z; type = "MC"),
     linewidth = 1.5, linestyle = :dash, colour = 2, label = ""
 )
 plot!(
-    xx_exact, possibilistic_contour(xx_exact, [-0.004], [0.024], [y X], Z; type = "MC"),
+    xx_exact, possibilistic_contour(xx_exact, [0.0], [0.04], [y X], Z; type = "MC"),
     linewidth = 1.5, linestyle = :dash, colour = 3, label = ""
 )
 
