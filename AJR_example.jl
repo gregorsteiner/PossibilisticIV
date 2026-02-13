@@ -14,46 +14,48 @@ W = [ones(length(y_raw)) Matrix(d[:, ["Latitude"]])]
 M_W = I - W * inv(W'W) * W'
 y, x, z = map(vec -> M_W * vec, (y_raw, x_raw, z_raw))
 
-
-# Create plot with results (both approximation and more exact sampling scheme)
-xx = -0.1:0.01:2.5
-p = plot(
-    xx, possibilistic_contour(xx, [-0.0], [0.0], [y x], z),
-    linewidth = 1.5,
-    xlabel = L"\beta", ylabel = L"\pi_w(\beta \mid A)",
-    label = L"A = \{0\}",
-    legend = true
-)
-plot!(
-    xx, possibilistic_contour(xx, [-0.1], [0.1], [y x], z),
-    linewidth = 1.5, label = L"A = [-0.1, 0.1]"
-)
-plot!(
-    xx, possibilistic_contour(xx, [-0.4], [0.4], [y x], z),
-    linewidth = 1.5, label = L"A = [-0.4, 0.4]"
+# plot results
+default(
+    fontfamily="Computer Modern",
+    titlefontsize=11, 
+    guidefontsize=13, 
+    tickfontsize=11, 
+    legendfontsize=9,
+    frame=:axes, 
+    grid=false,
+    lw=1.5,
+    palette=:tableau_10,
+    dpi=300
 )
 
-xx_exact = -0.1:0.02:2.5 # use less fine grid to save computation
-plot!(
-    xx_exact, possibilistic_contour(xx_exact, [-0.0], [0.0], [y x], z; type = "MC"),
-    linewidth = 1.5, linestyle = :dash, colour = 1,
-    label = ""
-)
-plot!(
-    xx_exact, possibilistic_contour(xx_exact, [-0.1], [0.1], [y x], z; type = "MC"),
-    linewidth = 1.5, linestyle = :dash, colour = 2,
-    label = ""
-)
-plot!(
-    xx_exact, possibilistic_contour(xx_exact, [-0.4], [0.4], [y x], z; type = "MC"),
-    linewidth = 1.5, linestyle = :dash, colour = 3,
-    label = ""
-)
-hline!([0.05], linestyle = :dash, label = "", colour = :grey)
+intervals = [([-0.0], [0.0]), ([-0.1], [0.1]), ([-0.4], [0.4])]
+labels = [L"A = \{0\}", L"A = [-0.1, 0.1]", L"A = [-0.4, 0.4]"]
 
+p = plot(xlabel = L"\beta", ylabel = L"\pi_w(\beta \mid A)", xlims=(-0.1, 2.8), ylims=(0, 1.05))
+xx, xx_exact = -0.1:0.01:2.8, -0.1:0.02:2.8
+for i in 1:length(intervals)
+    low, high = intervals[i]
+    
+    # Approximation (Solid)
+    plot!(xx, possibilistic_contour(xx, low, high, [y x], z), 
+          label = labels[i], color = i)
+    
+    # Exact MC (Dashed)
+    plot!(xx_exact, possibilistic_contour(xx_exact, low, high, [y x], z; type = "MC"),
+          ls = :dash, color = i, label = "")
+end
 
-# save both plots
-p = plot(p, size=(600, 300), legend = :outerbottom, legend_column = 3, bottom_margin=-4Plots.mm)
+# Add threshold line with annotation
+hline!([0.05], ls = :dot, lc = :black, alpha=0.5, label = "")
+
+# Final Layout
+plot!(
+    p, 
+    size=(600, 300),
+    legend = :topright,
+    legend_foreground_color = :transparent,
+    legend_column = 1
+)
 savefig(p, "AJR_Possibility_Contour.pdf")
 
 

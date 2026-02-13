@@ -32,40 +32,57 @@ Z = M_U * d.nearc4
 Z'Z \ Z'y .- Z'Z \ Z'X * 0.0
 
 
-# Run analysis
-xx = -0.1:0.001:0.3
+# plot results
+default(
+    fontfamily="Computer Modern",
+    titlefontsize=11, 
+    guidefontsize=13, 
+    tickfontsize=11, 
+    legendfontsize=9,
+    frame=:axes, 
+    grid=false,
+    lw=1.5,
+    palette=:tableau_10,
+    dpi=300
+)
+
+xx, xx_exact = -0.1:0.001:0.3, -0.1:0.005:0.3
 p = plot(
     xx, possibilistic_contour(xx, [-0.0], [0.0], [y X], Z),
-    linewidth = 1.5,
     xlabel = L"\beta", ylabel = L"\pi_w(\beta \mid A)",
     label = L"A = \{0\}",
     legend = true
 )
 plot!(
     xx, possibilistic_contour(xx, [0.0], [0.02], [y X], Z),
-    linewidth = 1.5, label = L"A = [0, 0.02]"
+    label = L"A = [0, 0.02]"
 )
 plot!(
     xx, possibilistic_contour(xx, [0.0], [0.04], [y X], Z),
-    linewidth = 1.5, label = L"A = [0, 0.04]"
+    label = L"A = [0, 0.04]"
 )
 
-xx_exact = -0.1:0.005:0.3
 plot!(
     xx_exact, possibilistic_contour(xx_exact, [0.0], [0.0], [y X], Z; type = "MC"),
-    linewidth = 1.5, linestyle = :dash, colour = 1, label = ""
+    linestyle = :dash, colour = 1, label = ""
 )
 plot!(
     xx_exact, possibilistic_contour(xx_exact, [0.0], [0.02], [y X], Z; type = "MC"),
-    linewidth = 1.5, linestyle = :dash, colour = 2, label = ""
+    linestyle = :dash, colour = 2, label = ""
 )
 plot!(
     xx_exact, possibilistic_contour(xx_exact, [0.0], [0.04], [y X], Z; type = "MC"),
-    linewidth = 1.5, linestyle = :dash, colour = 3, label = ""
+    linestyle = :dash, colour = 3, label = ""
 )
 
-hline!([0.05], linestyle = :dash, label = "", colour = :grey)
-p = plot(p, size=(600, 300), legend = :outerbottom, legend_column = 3, bottom_margin=-4Plots.mm)
+hline!([0.05], ls = :dot, lc = :black, alpha=0.5, label = "")
+p = plot(
+    p, 
+    size=(600, 300),
+    legend = :topright,
+    legend_foreground_color = :transparent,
+    legend_column = 1
+)
 savefig(p, "Schooling_Possibility_Contour.pdf")
 
 
