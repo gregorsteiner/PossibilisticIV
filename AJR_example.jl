@@ -1,5 +1,5 @@
 using CSV, DataFrames
-using StatsPlots, LaTeXStrings
+using Plots, LaTeXStrings, Measures
 
 # import method function
 include("PossibilisticIV.jl")
@@ -15,16 +15,22 @@ M_W = I - W * inv(W'W) * W'
 y, x, z = map(vec -> M_W * vec, (y_raw, x_raw, z_raw))
 
 # plot results
+my_palette = [
+    "#E69F00", # Orange
+    "#56B4E9", # Sky Blue
+    "#009E73", # Bluish Green
+]
 default(
     fontfamily="Computer Modern",
     titlefontsize=11, 
     guidefontsize=13, 
     tickfontsize=11, 
     legendfontsize=9,
-    frame=:axes, 
+    frame=:axes,
+    tick_direction = :out,
     grid=false,
-    lw=1.5,
-    palette=:tableau_10,
+    lw=2.0,
+    palette=my_palette,
     dpi=300
 )
 
@@ -51,7 +57,8 @@ hline!([0.05], ls = :dot, lc = :black, alpha=0.5, label = "")
 # Final Layout
 plot!(
     p, 
-    size=(600, 300),
+    size=(550, 275),
+    margin = 1.5mm,
     legend = :topright,
     legend_foreground_color = :transparent,
     legend_column = 1
