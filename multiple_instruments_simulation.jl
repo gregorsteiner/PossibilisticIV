@@ -1,5 +1,5 @@
 
-using Random
+using Random, DataFrames
 using LaTeXStrings
 
 include("PossibilisticIV.jl")
@@ -7,10 +7,11 @@ include("competing_methods.jl")
 
 
 ## Data generating function ## 
-function generate_data(n, s; ρ = 1/2, β = 1.0, p = 5)
+function generate_data(n, R2_fs, s; ρ = 1/2, β = 1.0, p = 5)
     Z = rand(MvNormal(zeros(p), I), n)'
 
-    γ_2   = ones(p) .* 1/4 # chosen s.t. the first-stage R^2 is approximately 0.25
+    c_instr = sqrt(R2_fs / ((1-R2_fs) * p))
+    γ_2   = ones(p) .* c_instr
     α = 0.1 .* [ones(s); zeros(p-s)]
 
     u = rand(MvNormal([0, 0], [1 ρ; ρ 1]), n)'
@@ -21,15 +22,15 @@ function generate_data(n, s; ρ = 1/2, β = 1.0, p = 5)
 end
 
 ## Write function to implement the simulation ##
-function run_simulation(s; m = 100, n = 100, ρ = 1/2, p = 5)
+function run_simulation(m, n, s, R2_fs; ρ = 1/2, p = 5)
     # different methods
     methods = [
-        L"Possibilistic IV ($A = \{0\}, \chi^2$-Appr.)",
-        L"Possibilistic IV ($A = \{0\}$, MC)",
-        L"Possibilistic IV ($A = [-0.1, 0.1]^p, \chi^2$-Appr.)",
-        L"Possibilistic IV ($A = [-0.1, 0.1]^p$, MC)",
-        L"Possibilistic IV ($A = [0.0, 0.2]^p, \chi^2$-Appr.)",
-        L"Possibilistic IV ($A = [0.0, 0.2]^p$, MC)",
+        L"VIPER ($A = \{0\}, \chi^2$)",
+        L"VIPER ($A = \{0\}$, MC)",
+        L"VIPER ($A = [-0.1, 0.1]^p, \chi^2$)",
+        L"VIPER ($A = [-0.1, 0.1]^p$, MC)",
+        L"VIPER ($A = [0.0, 0.2]^p, \chi^2$)",
+        L"VIPER ($A = [0.0, 0.2]^p$, MC)",
         "TSLS",
         "PGMM-g",
         "gIVBMA",
@@ -47,7 +48,7 @@ function run_simulation(s; m = 100, n = 100, ρ = 1/2, p = 5)
     # start iterating
     Threads.@threads for i in 1:m
         # simulate data
-        Y, X, Z = generate_data(n, s; ρ = ρ, β = true_β, p = p)
+        Y, X, Z = generate_data(n, R2_fs, s; ρ = ρ, β = true_β, p = p)
         # centre data
         Y, X = (Y .- mean(Y), X .- mean(X))
 
@@ -69,7 +70,7 @@ function run_simulation(s; m = 100, n = 100, ρ = 1/2, p = 5)
 
     for i in 1:m
         # simulate data
-        Y, X, Z = generate_data(n, s; ρ = ρ, β = true_β, p = p)
+        Y, X, Z = generate_data(n, R2_fs, s; ρ = ρ, β = true_β, p = p)
         # centre data
         Y, X = (Y .- mean(Y), X .- mean(X))
         # compute coverage
@@ -78,26 +79,44 @@ function run_simulation(s; m = 100, n = 100, ρ = 1/2, p = 5)
         coverage[12, i] = check_coverage(ciiv(Y, X, Z), true_β) # CIIV
     end
 
-    return (Coverage = mean(coverage; dims = 2)[:, 1], Methods = methods, s = s)
+    cover_rates = mean(coverage; dims = 2)[:, 1]
+
+    return DataFrame(
+        method = methods,
+        coverage = cover_rates,
+        s = fill(s, length(methods)),
+        n = fill(n, length(methods)),
+        R2_fs = fill(R2_fs, length(methods))
+    )
 end
 
 
 ## Run simulation ##
-m = 500
-ss = [0, 2, 3, 5]
+m = 5 # number of iterations in each scenario
+s_vals = [0, 2, 3, 5] # number of invalid instruments
+n_vals = [50, 500] # sample sizes
+R2_vals = [0.1, 0.25] # first-stage R^2 values
+
+# run simulation
 Random.seed!(42)
-res = map(s -> run_simulation(s; m = m), ss)
+results = DataFrame()
+
+@time begin
+for n in n_vals
+    for R2 in R2_vals
+        for s in s_vals
+            println("Running n=$n, R2=$R2, s=$s")
+            df = run_simulation(m, n, s, R2)
+            append!(results, df)
+        end
+    end
+end
+end
+
 
 
 ## Save results ##
-using DataFrames, CSV
-df = DataFrame(Method = res[1].Methods)
-for scenario in res
-    name = "s = " * string(scenario.s)
-    df[!, name] = scenario.Coverage
-end
-
-CSV.write("Multiple_Instruments_Simulation_Results.csv", df)
+CSV.write("Multiple_Instruments_Simulation_Results.csv", results)
 
 ## Latex table displaying the results ##
 function coverage_table_latex(res, ss)
