@@ -1,5 +1,5 @@
 
-using Random, DataFrames
+using Random, DataFrames, CSV
 using LaTeXStrings
 
 include("PossibilisticIV.jl")
@@ -34,8 +34,8 @@ function run_simulation(m, n, s, R2_fs; ρ = 1/2, p = 5)
         "TSLS",
         "PGMM-g",
         "gIVBMA",
-        L"BudgetIV ($\alpha = 0$)",
-        L"BudgetIV ($\lvert \alpha_i \rvert \leq 0.2$)",
+        L"BudgetIV ($b = 1, \tau = 0$)",
+        L"BudgetIV ($b = 1, \tau = 0.2$)",
         "CIIV"
         ]
     
@@ -92,8 +92,8 @@ end
 
 
 ## Run simulation ##
-m = 5 # number of iterations in each scenario
-s_vals = [0, 2, 3, 5] # number of invalid instruments
+m = 200 # number of iterations in each scenario
+s_vals = [0, 1, 2, 3, 4, 5] # number of invalid instruments
 n_vals = [50, 500] # sample sizes
 R2_vals = [0.1, 0.25] # first-stage R^2 values
 
@@ -101,7 +101,6 @@ R2_vals = [0.1, 0.25] # first-stage R^2 values
 Random.seed!(42)
 results = DataFrame()
 
-@time begin
 for n in n_vals
     for R2 in R2_vals
         for s in s_vals
@@ -111,52 +110,111 @@ for n in n_vals
         end
     end
 end
-end
 
 
 
 ## Save results ##
 CSV.write("Multiple_Instruments_Simulation_Results.csv", results)
 
-## Latex table displaying the results ##
-function coverage_table_latex(res, ss)
-    methods = res[1].Methods
-    # Create scenario labels dynamically from alphas
-    scenarios = ["\\(s = $(s)\\)" for s in ss]
 
-    # Find the index of the value closest to 0.95 for each scenario (column)
-    best_indices = []
-    for j in 1:length(scenarios)
-        coverages = res[j].Coverage
-        # Compute distances to 0.95
-        distances = [abs(c - 0.95) for c in coverages]
-        # Find the index of the min distance (i.e., closest to 0.95)
-        push!(best_indices, argmin(distances))
-    end
+using Plots, Measures, LaTeXStrings
 
-    table_str = "\\begin{table}[ht]\n\\centering\n\\caption{Empirical coverage of \$95\\%\$ uncertainty intervals across \$500\$ simulated datasets ot size \$n =100\$, where \$s\$ out of \$p=5\$ instruments are invalid with \$\\alpha_i = 0.1\$. The value closest to the nominal coverage in each column is printed in bold.}\n\\label{tab:coverage_multiple_instruments}\n"
-    table_str *= "\\begin{tabular}{l" * "c"^length(scenarios) * "}\n"
-    table_str *= "\\toprule\n"
-    table_str *= "Method & " * join(scenarios, " & ") * " \\\\\n"
-    table_str *= "\\midrule\n"
+# 1. Setup Metadata
+df = deepcopy(results)
+# Ensure we know the grid dimensions for labeling logic
+n_vals = sort(unique(df.n))      # Rows? (Depends on your preference)
+R2_vals = sort(unique(df.R2_fs)) # Columns?
+methods = unique(df.method)
 
-    for (i, method) in enumerate(methods)
-        row_vals = []
-        for j in 1:length(scenarios)
-            coverage_val = res[j].Coverage[i]
-            if i == best_indices[j]
-                push!(row_vals, "\\textbf{$(coverage_val)}")
-            else
-                push!(row_vals, string(coverage_val))
+gr()
+
+# Using tab20 for 11+ methods
+my_palette = palette(:turbo, length(methods)) 
+
+default(
+    linewidth = 2,
+    markersize = 5,
+    legendfontsize = 9,
+    guidefontsize = 13,
+    tickfontsize = 11,
+    titlefontsize = 13,
+    grid = false,
+    framestyle = :axes,
+    fontfamily = "Computer Modern" 
+)
+
+plots = []
+
+# Assuming a 2x2 grid based on your layout
+# We'll track indices to decide where to put labels
+for (row_idx, n_val) in enumerate(n_vals)
+    for (col_idx, R2_val) in enumerate(R2_vals)
+        subdf = df[(df.n .== n_val) .& (df.R2_fs .== R2_val), :]
+        
+        # Only bottom row (row 2) gets xlabel
+        # Only left column (col 1) gets ylabel
+        show_x = (row_idx == 2)
+        show_y = (col_idx == 1)
+
+        p = plot(
+            xlabel = show_x ? "Invalid Instruments (s)" : "",
+            ylabel = show_y ? "Coverage" : "",
+            # Using L"" for LaTeX rendering in titles
+            title = L"n = %$n_val, R^2 = %$R2_val",
+            legend = false,
+            ylim = (0, 1.05)
+        )
+
+        #hline!(p, [0.95], linestyle = :dash, color = :black, alpha=0.4, label="")
+
+        for (i, m) in enumerate(methods)
+            data_m = subdf[subdf.method .== m, :]
+            if !isempty(data_m)
+                sort!(data_m, :s)
+                plot!(p, data_m.s, data_m.coverage,
+                      linestyle = (i <= 6) ? :solid : :dash,
+                      marker = :circle, 
+                      color = my_palette[i])
             end
         end
-        table_str *= method * " & " * join(row_vals, " & ") * " \\\\\n"
+        push!(plots, p)
     end
-
-    table_str *= "\\bottomrule\n\\end{tabular}\n\\end{table}"
-
-    return println(table_str)
 end
 
+# 4. Create the Legend-Only Plot
+legend_plot = plot(
+    grid = false, 
+    showaxis = false, 
+    ticks = false, 
+    legend = :top,
+    legend_columns = 3, # Grouped into rows for 11 methods
+    background_color_subplot = :transparent,
+    margins = 0mm
+)
 
-coverage_table_latex(res, ss)
+for (i, m) in enumerate(methods)
+    # Wrap method names in LaTeXStrings wrapper
+    # This handles both plain text and $...$ math strings
+    plot!(legend_plot, [NaN], [NaN], 
+          label = string(m),
+          linestyle = (i <= 6) ? :solid : :dash,
+          marker = :circle, 
+          color = my_palette[i])
+end
+
+# 5. Final Assembly
+l = @layout [
+    grid(2, 2)
+    legend_area{0.175h} 
+]
+
+final_plot = plot(
+    plots..., legend_plot,
+    layout = l,
+    size = (900, 600),
+    # link=:both helps align axes when interior labels are hidden
+    link = :both, 
+    margin = 2mm
+)
+
+display(final_plot)
