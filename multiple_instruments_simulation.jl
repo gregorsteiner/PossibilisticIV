@@ -120,17 +120,16 @@ CSV.write("Multiple_Instruments_Simulation_Results.csv", results)
 using Plots, Measures, LaTeXStrings
 
 # 1. Setup Metadata
+results = CSV.read("Multiple_Instruments_Simulation_Results.csv", DataFrame)
 df = deepcopy(results)
 # Ensure we know the grid dimensions for labeling logic
 n_vals = sort(unique(df.n))      # Rows? (Depends on your preference)
 R2_vals = sort(unique(df.R2_fs)) # Columns?
 methods = unique(df.method)
 
-gr()
 
-# Using tab20 for 11+ methods
 my_palette = palette(:turbo, length(methods)) 
-
+gr()
 default(
     linewidth = 2,
     markersize = 5,
@@ -212,9 +211,11 @@ final_plot = plot(
     plots..., legend_plot,
     layout = l,
     size = (900, 600),
+    ylims = (0.45, 1.05),
     # link=:both helps align axes when interior labels are hidden
     link = :both, 
     margin = 2mm
 )
 
 display(final_plot)
+savefig("Multiple_Instruments_Results.pdf")
