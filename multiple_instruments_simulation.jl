@@ -207,11 +207,10 @@ for (row_idx, n_val) in enumerate(n_vals)
 
         p = plot(
             xlabel = show_x ? "Invalid Instruments (s)" : "",
-            ylabel = show_y ? "Coverage" : "",
+            ylabel = show_y ? "|Coverage - 0.95|" : "",
             # Using L"" for LaTeX rendering in titles
             title = L"n = %$n_val, R^2 = %$R2_val",
-            legend = false,
-            ylim = (0, 1.05)
+            legend = false
         )
 
         #hline!(p, [0.95], linestyle = :dash, color = :black, alpha=0.4, label="")
@@ -220,8 +219,8 @@ for (row_idx, n_val) in enumerate(n_vals)
             data_m = subdf[subdf.method .== m, :]
             if !isempty(data_m)
                 sort!(data_m, :s)
-                plot!(p, data_m.s, data_m.coverage,
-                      linestyle = (i <= 6) ? :solid : :dash,
+                plot!(p, data_m.s, abs.(data_m.coverage .- 0.95),
+                      linestyle = (i <= 6) ? :solid : :dot,
                       marker = :circle, 
                       color = my_palette[i])
             end
@@ -246,7 +245,7 @@ for (i, m) in enumerate(methods)
     # This handles both plain text and $...$ math strings
     plot!(legend_plot, [NaN], [NaN], 
           label = string(m),
-          linestyle = (i <= 6) ? :solid : :dash,
+          linestyle = (i <= 6) ? :solid : :dot,
           marker = :circle, 
           color = my_palette[i])
 end
@@ -261,11 +260,11 @@ final_plot = plot(
     plots..., legend_plot,
     layout = l,
     size = (900, 600),
-    ylims = (0.45, 1.05),
+    ylims = (-0.02, 0.31),
     # link=:both helps align axes when interior labels are hidden
     link = :both, 
     margin = 2mm
 )
 
 display(final_plot)
-savefig("Multiple_Instruments_Results.pdf")
+savefig("Multiple_Instruments_Additional_Results.pdf")
