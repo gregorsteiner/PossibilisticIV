@@ -92,15 +92,23 @@ end
 
 
 ## Run simulation ##
-m = 200 # number of iterations in each scenario
-s_vals = [0, 1, 2, 3, 4, 5] # number of invalid instruments
-n_vals = [50, 500] # sample sizes
-R2_vals = [0.1, 0.25] # first-stage R^2 values
+
 
 # run simulation
 Random.seed!(42)
 results = DataFrame()
+for s in [0, 2, 3, 4]
+    println("Running n=200, R2=0.15, s=$s")
+    df = run_simulation(500, 200, s, 0.15)
+    append!(results, df)
+end
+append!(results, run_simulation(500, 200, 5, 0.15))
 
+# run additional scenarios
+m = 200 # number of iterations in each scenario
+s_vals = [0, 1, 2, 3, 4, 5] # number of invalid instruments
+n_vals = [50, 500] # sample sizes
+R2_vals = [0.1, 0.25] # first-stage R^2 values
 for n in n_vals
     for R2 in R2_vals
         for s in s_vals
@@ -117,11 +125,20 @@ end
 CSV.write("Multiple_Instruments_Simulation_Results.csv", results)
 
 
+# plot additional results
+
+
+results = CSV.read("Multiple_Instruments_Simulation_Results.csv", DataFrame)
+
+# Table of main text results
+bool_main = results.R2_fs .== 0.15
+
+
+
+# Plot of additional results
 using Plots, Measures, LaTeXStrings
 
-# 1. Setup Metadata
-results = CSV.read("Multiple_Instruments_Simulation_Results.csv", DataFrame)
-df = deepcopy(results)
+df = deepcopy(results[.!bool_main,:])
 # Ensure we know the grid dimensions for labeling logic
 n_vals = sort(unique(df.n))      # Rows? (Depends on your preference)
 R2_vals = sort(unique(df.R2_fs)) # Columns?
