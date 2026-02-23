@@ -97,7 +97,7 @@ end
 # run simulation
 Random.seed!(42)
 results = DataFrame()
-for s in [0, 2, 3, 4]
+for s in [0, 2, 3, 5]
     println("Running n=200, R2=0.15, s=$s")
     df = run_simulation(500, 200, s, 0.15)
     append!(results, df)
@@ -131,8 +131,41 @@ CSV.write("Multiple_Instruments_Simulation_Results.csv", results)
 results = CSV.read("Multiple_Instruments_Simulation_Results.csv", DataFrame)
 
 # Table of main text results
-bool_main = results.R2_fs .== 0.15
+function df_to_latex_table(
+    df::DataFrame;
+    caption::String = "Caption here.",
+    label::String = "tab:coverage"
+)
+    s_vals = sort(unique(df.s))
+    methods = unique(df.method)
 
+    lookup = Dict((row.method, row.s) => row.coverage for row in eachrow(df))
+
+    io = IOBuffer()
+
+    col_spec = "l" * repeat("c", length(s_vals))
+    println(io, "\\begin{tabular}{$col_spec}")
+    println(io, "\\toprule")
+
+    header_cols = join(["\\(s = $s\\)" for s in s_vals], " & ")
+    println(io, "Method & $header_cols \\\\")
+    println(io, "\\midrule")
+
+    for method in methods
+        cells = [string(get(lookup, (method, s), "")) for s in s_vals]
+        println(io, method * " & " * join(cells, " & ") * " \\\\")
+    end
+
+    println(io, "\\bottomrule")
+    println(io, "\\end{tabular}")
+    return String(take!(io))
+end
+
+
+df_to_latex_table(
+    results[results.R2_fs .== 0.15, :];
+    caption = ""
+) |> println
 
 
 # Plot of additional results
