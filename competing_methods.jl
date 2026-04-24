@@ -82,3 +82,28 @@ function ciiv(Y, X, Z)
     return (ci, p = p)
 end
 
+## Leaky IV by Watson et al (2024)
+function leaky_iv(Y, X, Z, tau; level = 0.05, B = 10)
+    p = size(Z, 2)
+    @rput Y X Z tau B
+    R"""
+    library(leakyIV)
+    res = leakyIV::leakyIV(cbind(Y, X, Z), tau = tau, n_boot = B, parallel = FALSE, method = "shrink")
+    """
+    @rget res
+    
+    # Construct confidence interval from bootstrap bounds (Theorem 4 in the LeakyIV paper)
+    # Calculate indices
+    l = max(1, ceil(Int, (B + 1) * (level / 2)))
+    u = min(B, ceil(Int, (B + 1) * (1 - level / 2)))
+    
+    # Get l-th and u-th smallest values from bootstrap distributions
+    lower_bounds = sort(res[:, 1])
+    upper_bounds = sort(res[:, 2])
+    
+    qˆl = lower_bounds[l]
+    qˆu = upper_bounds[u]
+    
+    return (ci = [qˆl, qˆu], tau = tau)
+end
+
