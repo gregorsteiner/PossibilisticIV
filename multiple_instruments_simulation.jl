@@ -1,5 +1,5 @@
 
-using Random
+using Random, DataFrames, CSV
 using LaTeXStrings
 
 include("PossibilisticIV.jl")
@@ -7,10 +7,11 @@ include("competing_methods.jl")
 
 
 ## Data generating function ## 
-function generate_data(n, s; ρ = 1/2, β = 1.0, p = 5)
+function generate_data(n, R2_fs, s; ρ = 1/2, β = 1.0, p = 5)
     Z = rand(MvNormal(zeros(p), I), n)'
 
-    γ_2   = ones(p) .* 1/4 # chosen s.t. the first-stage R^2 is approximately 0.25
+    c_instr = sqrt(R2_fs / ((1-R2_fs) * p))
+    γ_2   = ones(p) .* c_instr
     α = 0.1 .* [ones(s); zeros(p-s)]
 
     u = rand(MvNormal([0, 0], [1 ρ; ρ 1]), n)'
@@ -21,20 +22,20 @@ function generate_data(n, s; ρ = 1/2, β = 1.0, p = 5)
 end
 
 ## Write function to implement the simulation ##
-function run_simulation(s; m = 100, n = 100, ρ = 1/2, p = 5)
+function run_simulation(m, n, s, R2_fs; ρ = 1/2, p = 5)
     # different methods
     methods = [
-        L"Possibilistic IV ($A = \{0\}, \chi^2$-Appr.)",
-        L"Possibilistic IV ($A = \{0\}$, MC)",
-        L"Possibilistic IV ($A = [-0.1, 0.1]^p, \chi^2$-Appr.)",
-        L"Possibilistic IV ($A = [-0.1, 0.1]^p$, MC)",
-        L"Possibilistic IV ($A = [0.0, 0.2]^p, \chi^2$-Appr.)",
-        L"Possibilistic IV ($A = [0.0, 0.2]^p$, MC)",
+        L"VIPER ($A = \{0\}, \chi^2$)",
+        L"VIPER ($A = \{0\}$, MC)",
+        L"VIPER ($A = [-0.1, 0.1]^p, \chi^2$)",
+        L"VIPER ($A = [-0.1, 0.1]^p$, MC)",
+        L"VIPER ($A = [0.0, 0.2]^p, \chi^2$)",
+        L"VIPER ($A = [0.0, 0.2]^p$, MC)",
         "TSLS",
         "PGMM-g",
         "gIVBMA",
-        L"BudgetIV ($\alpha = 0$)",
-        L"BudgetIV ($\lvert \alpha_i \rvert \leq 0.2$)",
+        L"BudgetIV ($b = 1, \tau = 0$)",
+        L"BudgetIV ($b = 1, \tau = 0.2$)",
         "CIIV"
         ]
     
@@ -47,7 +48,7 @@ function run_simulation(s; m = 100, n = 100, ρ = 1/2, p = 5)
     # start iterating
     Threads.@threads for i in 1:m
         # simulate data
-        Y, X, Z = generate_data(n, s; ρ = ρ, β = true_β, p = p)
+        Y, X, Z = generate_data(n, R2_fs, s; ρ = ρ, β = true_β, p = p)
         # centre data
         Y, X = (Y .- mean(Y), X .- mean(X))
 
@@ -69,7 +70,7 @@ function run_simulation(s; m = 100, n = 100, ρ = 1/2, p = 5)
 
     for i in 1:m
         # simulate data
-        Y, X, Z = generate_data(n, s; ρ = ρ, β = true_β, p = p)
+        Y, X, Z = generate_data(n, R2_fs, s; ρ = ρ, β = true_β, p = p)
         # centre data
         Y, X = (Y .- mean(Y), X .- mean(X))
         # compute coverage
@@ -78,66 +79,192 @@ function run_simulation(s; m = 100, n = 100, ρ = 1/2, p = 5)
         coverage[12, i] = check_coverage(ciiv(Y, X, Z), true_β) # CIIV
     end
 
-    return (Coverage = mean(coverage; dims = 2)[:, 1], Methods = methods, s = s)
+    cover_rates = mean(coverage; dims = 2)[:, 1]
+
+    return DataFrame(
+        method = methods,
+        coverage = cover_rates,
+        s = fill(s, length(methods)),
+        n = fill(n, length(methods)),
+        R2_fs = fill(R2_fs, length(methods))
+    )
 end
 
 
 ## Run simulation ##
-m = 500
-ss = [0, 2, 3, 5]
+
+
+# run simulation
 Random.seed!(42)
-res = map(s -> run_simulation(s; m = m), ss)
+results = DataFrame()
+for s in [0, 2, 3, 5]
+    println("Running n=200, R2=0.15, s=$s")
+    df = run_simulation(500, 200, s, 0.15)
+    append!(results, df)
+end
+append!(results, run_simulation(500, 200, 5, 0.15))
+
+# run additional scenarios
+m = 200 # number of iterations in each scenario
+s_vals = [0, 1, 2, 3, 4, 5] # number of invalid instruments
+n_vals = [50, 500] # sample sizes
+R2_vals = [0.1, 0.25] # first-stage R^2 values
+for n in n_vals
+    for R2 in R2_vals
+        for s in s_vals
+            println("Running n=$n, R2=$R2, s=$s")
+            df = run_simulation(m, n, s, R2)
+            append!(results, df)
+        end
+    end
+end
+
 
 
 ## Save results ##
-using DataFrames, CSV
-df = DataFrame(Method = res[1].Methods)
-for scenario in res
-    name = "s = " * string(scenario.s)
-    df[!, name] = scenario.Coverage
-end
+CSV.write("Multiple_Instruments_Simulation_Results.csv", results)
 
-CSV.write("Multiple_Instruments_Simulation_Results.csv", df)
 
-## Latex table displaying the results ##
-function coverage_table_latex(res, ss)
-    methods = res[1].Methods
-    # Create scenario labels dynamically from alphas
-    scenarios = ["\\(s = $(s)\\)" for s in ss]
+# plot additional results
 
-    # Find the index of the value closest to 0.95 for each scenario (column)
-    best_indices = []
-    for j in 1:length(scenarios)
-        coverages = res[j].Coverage
-        # Compute distances to 0.95
-        distances = [abs(c - 0.95) for c in coverages]
-        # Find the index of the min distance (i.e., closest to 0.95)
-        push!(best_indices, argmin(distances))
+
+results = CSV.read("Multiple_Instruments_Simulation_Results.csv", DataFrame)
+
+# Table of main text results
+function df_to_latex_table(
+    df::DataFrame;
+    caption::String = "Caption here.",
+    label::String = "tab:coverage"
+)
+    s_vals = sort(unique(df.s))
+    methods = unique(df.method)
+
+    lookup = Dict((row.method, row.s) => row.coverage for row in eachrow(df))
+
+    io = IOBuffer()
+
+    col_spec = "l" * repeat("c", length(s_vals))
+    println(io, "\\begin{tabular}{$col_spec}")
+    println(io, "\\toprule")
+
+    header_cols = join(["\\(s = $s\\)" for s in s_vals], " & ")
+    println(io, "Method & $header_cols \\\\")
+    println(io, "\\midrule")
+
+    for method in methods
+        cells = [string(get(lookup, (method, s), "")) for s in s_vals]
+        println(io, method * " & " * join(cells, " & ") * " \\\\")
     end
 
-    table_str = "\\begin{table}[ht]\n\\centering\n\\caption{Empirical coverage of \$95\\%\$ uncertainty intervals across \$500\$ simulated datasets ot size \$n =100\$, where \$s\$ out of \$p=5\$ instruments are invalid with \$\\alpha_i = 0.1\$. The value closest to the nominal coverage in each column is printed in bold.}\n\\label{tab:coverage_multiple_instruments}\n"
-    table_str *= "\\begin{tabular}{l" * "c"^length(scenarios) * "}\n"
-    table_str *= "\\toprule\n"
-    table_str *= "Method & " * join(scenarios, " & ") * " \\\\\n"
-    table_str *= "\\midrule\n"
+    println(io, "\\bottomrule")
+    println(io, "\\end{tabular}")
+    return String(take!(io))
+end
 
-    for (i, method) in enumerate(methods)
-        row_vals = []
-        for j in 1:length(scenarios)
-            coverage_val = res[j].Coverage[i]
-            if i == best_indices[j]
-                push!(row_vals, "\\textbf{$(coverage_val)}")
-            else
-                push!(row_vals, string(coverage_val))
+
+df_to_latex_table(
+    results[results.R2_fs .== 0.15, :];
+    caption = ""
+) |> println
+
+
+# Plot of additional results
+using Plots, Measures, LaTeXStrings
+
+df = deepcopy(results[.!bool_main,:])
+# Ensure we know the grid dimensions for labeling logic
+n_vals = sort(unique(df.n))      # Rows? (Depends on your preference)
+R2_vals = sort(unique(df.R2_fs)) # Columns?
+methods = unique(df.method)
+
+
+my_palette = palette(:turbo, length(methods)) 
+gr()
+default(
+    linewidth = 2,
+    markersize = 5,
+    legendfontsize = 9,
+    guidefontsize = 13,
+    tickfontsize = 11,
+    titlefontsize = 13,
+    grid = false,
+    framestyle = :axes,
+    fontfamily = "Computer Modern" 
+)
+
+plots = []
+
+# Assuming a 2x2 grid based on your layout
+# We'll track indices to decide where to put labels
+for (row_idx, n_val) in enumerate(n_vals)
+    for (col_idx, R2_val) in enumerate(R2_vals)
+        subdf = df[(df.n .== n_val) .& (df.R2_fs .== R2_val), :]
+        
+        # Only bottom row (row 2) gets xlabel
+        # Only left column (col 1) gets ylabel
+        show_x = (row_idx == 2)
+        show_y = (col_idx == 1)
+
+        p = plot(
+            xlabel = show_x ? "Invalid Instruments (s)" : "",
+            ylabel = show_y ? "|Coverage - 0.95|" : "",
+            # Using L"" for LaTeX rendering in titles
+            title = L"n = %$n_val, R^2 = %$R2_val",
+            legend = false
+        )
+
+        #hline!(p, [0.95], linestyle = :dash, color = :black, alpha=0.4, label="")
+
+        for (i, m) in enumerate(methods)
+            data_m = subdf[subdf.method .== m, :]
+            if !isempty(data_m)
+                sort!(data_m, :s)
+                plot!(p, data_m.s, abs.(data_m.coverage .- 0.95),
+                      linestyle = (i <= 6) ? :solid : :dot,
+                      marker = :circle, 
+                      color = my_palette[i])
             end
         end
-        table_str *= method * " & " * join(row_vals, " & ") * " \\\\\n"
+        push!(plots, p)
     end
-
-    table_str *= "\\bottomrule\n\\end{tabular}\n\\end{table}"
-
-    return println(table_str)
 end
 
+# 4. Create the Legend-Only Plot
+legend_plot = plot(
+    grid = false, 
+    showaxis = false, 
+    ticks = false, 
+    legend = :top,
+    legend_columns = 3, # Grouped into rows for 11 methods
+    background_color_subplot = :transparent,
+    margins = 0mm
+)
 
-coverage_table_latex(res, ss)
+for (i, m) in enumerate(methods)
+    # Wrap method names in LaTeXStrings wrapper
+    # This handles both plain text and $...$ math strings
+    plot!(legend_plot, [NaN], [NaN], 
+          label = string(m),
+          linestyle = (i <= 6) ? :solid : :dot,
+          marker = :circle, 
+          color = my_palette[i])
+end
+
+# 5. Final Assembly
+l = @layout [
+    grid(2, 2)
+    legend_area{0.175h} 
+]
+
+final_plot = plot(
+    plots..., legend_plot,
+    layout = l,
+    size = (900, 600),
+    ylims = (-0.02, 0.31),
+    # link=:both helps align axes when interior labels are hidden
+    link = :both, 
+    margin = 2mm
+)
+
+display(final_plot)
+savefig("Multiple_Instruments_Additional_Results.pdf")
