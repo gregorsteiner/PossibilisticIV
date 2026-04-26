@@ -1,0 +1,11 @@
+Method,α = 0.0,α = 0.25,α = 0.5
+"Possibilistic IV ($A = \{0\}, \chi^2$-Appr.)",0.955,0.35,0.0
+"Possibilistic IV ($A = \{0\}$, MC)",0.965,0.355,0.0
+"Possibilistic IV ($A = [-0.5, 0.5], \chi^2$-Appr.)",1.0,1.0,0.975
+"Possibilistic IV ($A = [-0.5, 0.5]$, MC)",1.0,1.0,0.96
+"Possibilistic IV ($A = [0.0, 0.5], \chi^2$-Appr.)",0.97,1.0,0.975
+"Possibilistic IV ($A = [0.0, 0.5]$, MC)",0.945,1.0,0.955
+TSLS,0.955,0.3,0.0
+PGMM-g,1.0,0.565,0.015
+BudgetIV ($\alpha = 0$),1.0,1.0,1.0
+BudgetIV ($\lvert \alpha \rvert \leq 0.5$),1.0,1.0,1.0
