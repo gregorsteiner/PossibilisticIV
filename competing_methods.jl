@@ -87,8 +87,8 @@ function leaky_iv(Y, X, Z, tau; level = 0.05, B = 10)
     p = size(Z, 2)
     @rput Y X Z tau B
     R"""
-    library(leakyIV)
-    res = leakyIV::leakyIV(cbind(Y, X, Z), tau = tau, n_boot = B, parallel = FALSE, method = "shrink")
+    dat = cbind(X, Y, Z)
+    res = leakyIV::leakyIV(dat, tau = tau, parallel = FALSE, n_boot = B)
     """
     @rget res
     
