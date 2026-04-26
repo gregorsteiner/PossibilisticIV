@@ -2,11 +2,11 @@ using CSV, DataFrames
 using Plots, LaTeXStrings, Measures
 
 
-include("PossibilisticIV.jl")
-include("competing_methods.jl")
+include("../PossibilisticIV.jl")
+include("../simulations/competing_methods.jl")
 
 # load and prepare data
-d = CSV.read("card.csv", DataFrame, missingstring = "NA", types = Union{Float64, Missing})[:, Not(1)]
+d = CSV.read(joinpath(@__DIR__, "card.csv"), DataFrame, missingstring = "NA", types = Union{Float64, Missing})[:, Not(1)]
 
 d.agesq = d.age .^ 2
 d.expersq = d.exper .^ 2

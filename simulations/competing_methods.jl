@@ -106,4 +106,3 @@ function leaky_iv(Y, X, Z, tau; level = 0.05, B = 10)
     
     return (ci = [qˆl, qˆu], tau = tau)
 end
-

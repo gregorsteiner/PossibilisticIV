@@ -3,7 +3,7 @@ using LaTeXStrings
 using Distributions
 using StatsBase
 
-include("PossibilisticIV.jl")
+include("../PossibilisticIV.jl")
 include("competing_methods.jl")
 
 

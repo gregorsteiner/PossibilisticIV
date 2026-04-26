@@ -1,8 +1,7 @@
-
 using Random, DataFrames, CSV
 using LaTeXStrings
 
-include("PossibilisticIV.jl")
+include("../PossibilisticIV.jl")
 include("competing_methods.jl")
 
 

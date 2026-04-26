@@ -2,11 +2,11 @@ using CSV, DataFrames
 using Plots, LaTeXStrings, Measures
 
 # import method function
-include("PossibilisticIV.jl")
-include("competing_methods.jl")
+include("../PossibilisticIV.jl")
+include("../simulations/competing_methods.jl")
 
 # load data
-d = CSV.read("AJR_Data.csv", DataFrame)
+d = CSV.read(joinpath(@__DIR__, "AJR_Data.csv"), DataFrame)
 y_raw, x_raw, z_raw = (d.GDP, d.Exprop, d.logMort)
 W = [ones(length(y_raw)) Matrix(d[:, ["Latitude"]])]
 
@@ -112,5 +112,3 @@ knitr::kable(
     escape = FALSE
     )
 """
-
-
