@@ -29,8 +29,8 @@ function run_simulation(m; n = 100, ρ = 1/2, α = 0.0)
         L"VIPER ($A = [0.0, 0.5]$, MC)",
         "TSLS",
         "PGMM-g",
-        L"BudgetIV ($\alpha = 0$)",
-        L"BudgetIV ($\lvert \alpha \rvert \leq 0.5$)"
+        L"BudgetIV ($\tau = 0$)",
+        L"BudgetIV ($\tau = 0.5$)"
         ]
     
     # storage objects
