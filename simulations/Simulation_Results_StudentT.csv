@@ -7,5 +7,5 @@ Method,α = 0.0,α = 0.25,α = 0.5
 "VIPER ($A = [0.0, 0.5]$, MC)",0.945,0.99,0.935
 TSLS,0.95,0.775,0.43
 PGMM-g,0.96,0.825,0.48
-BudgetIV ($\alpha = 0$),1.0,1.0,1.0
-BudgetIV ($\lvert \alpha \rvert \leq 0.5$),1.0,1.0,1.0
+BudgetIV ($\tau = 0$),1.0,1.0,1.0
+BudgetIV ($\tau = 0.5$),1.0,1.0,1.0
