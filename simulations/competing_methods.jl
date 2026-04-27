@@ -83,7 +83,7 @@ function ciiv(Y, X, Z)
 end
 
 ## Leaky IV by Watson et al (2024)
-function leaky_iv(Y, X, Z, tau; level = 0.05, B = 500)
+function leaky_iv(Y, X, Z, tau; level = 0.05, B = 100)
     p = size(Z, 2)
     @rput Y X Z tau B p
     R"""

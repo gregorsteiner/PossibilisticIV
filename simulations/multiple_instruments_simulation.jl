@@ -124,8 +124,6 @@ CSV.write("Multiple_Instruments_Simulation_Results.csv", results)
 
 
 # plot additional results
-
-
 results = CSV.read("Multiple_Instruments_Simulation_Results.csv", DataFrame)
 
 # Table of main text results
@@ -160,8 +158,9 @@ function df_to_latex_table(
 end
 
 
+bool_main = results.R2_fs .== 0.15
 df_to_latex_table(
-    results[results.R2_fs .== 0.15, :];
+    results[bool_main, :];
     caption = ""
 ) |> println
 
@@ -251,7 +250,7 @@ end
 # 5. Final Assembly
 l = @layout [
     grid(2, 2)
-    legend_area{0.175h} 
+    legend_area{0.22h} 
 ]
 
 final_plot = plot(
