@@ -33,6 +33,7 @@ function run_simulation(m, n, s, R2_fs; ρ = 1/2, p = 5)
         "TSLS",
         "PGMM-g",
         "gIVBMA",
+        L"LeakyIV ($\tau = 0.2$)",
         L"BudgetIV ($b = 1, \tau = 0$)",
         L"BudgetIV ($b = 1, \tau = 0.2$)",
         "CIIV"
@@ -73,9 +74,10 @@ function run_simulation(m, n, s, R2_fs; ρ = 1/2, p = 5)
         # centre data
         Y, X = (Y .- mean(Y), X .- mean(X))
         # compute coverage
-        coverage[10, i] =  check_coverage(budgetIV(Y, X, Z, 0.0, 1), true_β) # BudgetIV with budget 0
-        coverage[11, i] =  check_coverage(budgetIV(Y, X, Z, 0.2, 1), true_β) # BudgetIV with budget 1/2
-        coverage[12, i] = check_coverage(ciiv(Y, X, Z), true_β) # CIIV
+        coverage[10, i] = check_coverage(leaky_iv(Y, X, Z, 0.2), true_β) # Leaky IV with tau = 0.2
+        coverage[11, i] =  check_coverage(budgetIV(Y, X, Z, 0.0, 1), true_β) # BudgetIV with budget 0
+        coverage[12, i] =  check_coverage(budgetIV(Y, X, Z, 0.2, 1), true_β) # BudgetIV with budget 1/2
+        coverage[13, i] = check_coverage(ciiv(Y, X, Z), true_β) # CIIV
     end
 
     cover_rates = mean(coverage; dims = 2)[:, 1]
@@ -92,8 +94,6 @@ end
 
 ## Run simulation ##
 
-
-# run simulation
 Random.seed!(42)
 results = DataFrame()
 for s in [0, 2, 3, 5]
@@ -101,7 +101,6 @@ for s in [0, 2, 3, 5]
     df = run_simulation(500, 200, s, 0.15)
     append!(results, df)
 end
-append!(results, run_simulation(500, 200, 5, 0.15))
 
 # run additional scenarios
 m = 200 # number of iterations in each scenario

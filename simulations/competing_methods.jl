@@ -83,12 +83,12 @@ function ciiv(Y, X, Z)
 end
 
 ## Leaky IV by Watson et al (2024)
-function leaky_iv(Y, X, Z, tau; level = 0.05, B = 10)
+function leaky_iv(Y, X, Z, tau; level = 0.05, B = 500)
     p = size(Z, 2)
-    @rput Y X Z tau B
+    @rput Y X Z tau B p
     R"""
     dat = cbind(X, Y, Z)
-    res = leakyIV::leakyIV(dat, tau = tau, parallel = FALSE, n_boot = B)
+    res = leakyIV::leakyIV(dat, tau = rep(tau, p), parallel = FALSE, n_boot = B)
     """
     @rget res
     
