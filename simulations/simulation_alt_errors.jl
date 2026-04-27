@@ -61,12 +61,12 @@ end
 function run_simulation_custom(m, data_gen_func; n = 100, ρ = 1/2, α = 0.0)
     # different methods
     methods = [
-        L"Possibilistic IV ($A = \{0\}, \chi^2$-Appr.)",
-        L"Possibilistic IV ($A = \{0\}$, MC)",
-        L"Possibilistic IV ($A = [-0.5, 0.5], \chi^2$-Appr.)",
-        L"Possibilistic IV ($A = [-0.5, 0.5]$, MC)",
-        L"Possibilistic IV ($A = [0.0, 0.5], \chi^2$-Appr.)",
-        L"Possibilistic IV ($A = [0.0, 0.5]$, MC)",
+        L"VIPER ($A = \{0\}, \chi^2$-Appr.)",
+        L"VIPER ($A = \{0\}$, MC)",
+        L"VIPER ($A = [-0.5, 0.5], \chi^2$-Appr.)",
+        L"VIPER ($A = [-0.5, 0.5]$, MC)",
+        L"VIPER ($A = [0.0, 0.5], \chi^2$-Appr.)",
+        L"VIPER ($A = [0.0, 0.5]$, MC)",
         "TSLS",
         "PGMM-g",
         L"BudgetIV ($\alpha = 0$)",
