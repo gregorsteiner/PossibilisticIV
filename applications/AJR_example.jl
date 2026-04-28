@@ -68,18 +68,18 @@ savefig(p, "AJR_Possibility_Contour.pdf")
 
 # find uncertainty intervals
 using Roots
-f(r; a = 0.0) = first(possibilistic_contour([r], [-a], [a], [y x], z)) - 0.05
+
 println(
     "95%-Interval for α = 0: " *
-    string(round.((find_zero(f, 0.6), find_zero(f, 1.4)), digits = 2))
+    string(confidence_interval([-0.0], [0.0], [y x], z; level = 0.05))
 )
 println(
     "95%-Interval for A = [-0.1, 0.1]: " *
-    string(round.((find_zero(r -> f(r, a = 0.1), 0.6), find_zero(r -> f(r, a = 0.1), 1.4)), digits = 2))
+    string(confidence_interval([-0.1], [0.1], [y x], z; level = 0.05))
 )
 println(
     "95%-Interval for A = [-0.4, 0.4]: " *
-    string(round.((find_zero(r -> f(r, a = 0.4), 0.0), find_zero(r -> f(r, a = 0.4), 2.5)), digits = 2))
+    string(confidence_interval([-0.4], [0.4], [y x], z; level = 0.05))
 )
 
 
