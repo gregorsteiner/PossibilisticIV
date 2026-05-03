@@ -166,3 +166,24 @@ function upper_probability(lower_β, upper_β, lower_α, upper_α, W, Z; type = 
     error("Invalid type argument.")
 end
 
+## Compute confidence intervals
+using Roots
+function confidence_interval(lower_α, upper_α, W, Z; level = 0.05, 
+                              search_range = (-2.0, 3.0), n_scan = 50)
+    f(r) = first(possibilistic_contour([r], lower_α, upper_α, W, Z; type = "Chisq")) - level
+    
+    # Scan for sign changes
+    xs = range(search_range[1], search_range[2], length = n_scan)
+    ys = f.(xs)
+    
+    brackets = [(xs[i], xs[i+1]) for i in 1:length(xs)-1 if sign(ys[i]) != sign(ys[i+1])]
+    
+    isempty(brackets) && error("No roots found in $(search_range). Try widening search_range.")
+    length(brackets) < 2 && error("Found only $(length(brackets)) root(s); expected 2.")
+    
+    lower_bound = find_zero(f, brackets[1])
+    upper_bound = find_zero(f, brackets[end])  # use last bracket for upper
+    
+    return (lower = lower_bound, upper = upper_bound)
+end
+

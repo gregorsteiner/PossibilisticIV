@@ -1,8 +1,8 @@
-
 using Random, DataFrames, CSV
 using LaTeXStrings
+using Printf
 
-include("PossibilisticIV.jl")
+include("../PossibilisticIV.jl")
 include("competing_methods.jl")
 
 
@@ -21,6 +21,36 @@ function generate_data(n, R2_fs, s; ρ = 1/2, β = 1.0, p = 5)
     return (y, x, Z)
 end
 
+
+## VIPER wrapper function ##
+"""
+    viper_ci_wrapper(lower_α, upper_α, W, Z, true_β; type = "Chisq")
+
+Compute coverage and confidence interval for VIPER methods (multi-dimensional case).
+- Coverage: Pointwise evaluation at true_β
+- Interval: Computed via root finding (returns NaN if it fails to converge)
+"""
+function viper_ci_wrapper(lower_α, upper_α, W, Z, true_β; type = "Chisq")
+    # Compute pointwise coverage
+    coverage = first(possibilistic_contour(true_β, lower_α, upper_α, W, Z; type = type)) > 0.05
+    
+    # Try to compute confidence interval via root finding
+    interval_length = NaN
+    if type == "Chisq"
+        try
+            ci = confidence_interval(lower_α, upper_α, W, Z; level = 0.05)
+            interval_length = ci.upper - ci.lower
+        catch e
+            # Root finding failed to converge, return NaN
+            interval_length = NaN
+        end
+    end
+    # For MC type, we don't compute intervals (too expensive)
+    
+    return (coverage = coverage, interval_length = interval_length)
+end
+
+
 ## Write function to implement the simulation ##
 function run_simulation(m, n, s, R2_fs; ρ = 1/2, p = 5)
     # different methods
@@ -34,6 +64,7 @@ function run_simulation(m, n, s, R2_fs; ρ = 1/2, p = 5)
         "TSLS",
         "PGMM-g",
         "gIVBMA",
+        L"LeakyIV ($\tau = 0.2$)",
         L"BudgetIV ($b = 1, \tau = 0$)",
         L"BudgetIV ($b = 1, \tau = 0.2$)",
         "CIIV"
@@ -41,6 +72,7 @@ function run_simulation(m, n, s, R2_fs; ρ = 1/2, p = 5)
     
     # storage objects
     coverage = Matrix{Bool}(undef, length(methods), m)
+    interval_lengths = Matrix{Float64}(undef, length(methods), m)
 
     # true β
     true_β = 1.0
@@ -51,21 +83,37 @@ function run_simulation(m, n, s, R2_fs; ρ = 1/2, p = 5)
         Y, X, Z = generate_data(n, R2_fs, s; ρ = ρ, β = true_β, p = p)
         # centre data
         Y, X = (Y .- mean(Y), X .- mean(X))
+        W = [Y X]
 
-        # compute coverage
-        # possibilistic contour at the true value must be > 0.05
-        coverage[1, i] = first(possibilistic_contour(true_β, zeros(p), zeros(p), [Y X], Z)) > 0.05
-        coverage[2, i] = first(possibilistic_contour(true_β, zeros(p), zeros(p), [Y X], Z; type = "MC")) > 0.05
-        coverage[3, i] = first(possibilistic_contour(true_β, -0.1 * ones(p), 0.1 * ones(p), [Y X], Z)) > 0.05
-        coverage[4, i] = first(possibilistic_contour(true_β, -0.1 * ones(p), 0.1 * ones(p), [Y X], Z; type = "MC")) > 0.05
-        coverage[5, i] = first(possibilistic_contour(true_β, -0.0 * ones(p), 0.2 * ones(p), [Y X], Z)) > 0.05
-        coverage[6, i] = first(possibilistic_contour(true_β, -0.0 * ones(p), 0.2 * ones(p), [Y X], Z; type = "MC")) > 0.05
+        # compute coverage based on the wrapper function above
+        res_1 = viper_ci_wrapper(zeros(p), zeros(p), W, Z, true_β; type = "Chisq")
+        coverage[1, i], interval_lengths[1, i] = res_1.coverage, res_1.interval_length
+        
+        res_2 = viper_ci_wrapper(zeros(p), zeros(p), W, Z, true_β; type = "MC")
+        coverage[2, i], interval_lengths[2, i] = res_2.coverage, NaN
+        
+        res_3 = viper_ci_wrapper(-0.1 * ones(p), 0.1 * ones(p), W, Z, true_β; type = "Chisq")
+        coverage[3, i], interval_lengths[3, i] = res_3.coverage, res_3.interval_length
+        
+        res_4 = viper_ci_wrapper(-0.1 * ones(p), 0.1 * ones(p), W, Z, true_β; type = "MC")
+        coverage[4, i], interval_lengths[4, i] = res_4.coverage, NaN
+        
+        res_5 = viper_ci_wrapper(0.0 * ones(p), 0.2 * ones(p), W, Z, true_β; type = "Chisq")
+        coverage[5, i], interval_lengths[5, i] = res_5.coverage, res_5.interval_length
+        
+        res_6 = viper_ci_wrapper(0.0 * ones(p), 0.2 * ones(p), W, Z, true_β; type = "MC")
+        coverage[6, i], interval_lengths[6, i] = res_6.coverage, NaN
 
         # compute coverage for competing methods
-        coverage[7, i] = check_coverage(tsls(Y, X, Z), true_β) # Naive TSLS
-        coverage[8, i] = check_coverage(pgmm(Y, X, Z, I), true_β) # PGMM
-        fit_givbma = givbma(Y, X, Z; g_prior = "hyper-g/n", iter = 1000, burn = 100) # gIVBMA
-        coverage[9, i] = check_coverage(rbw(fit_givbma)[1], true_β)        
+        tsls_res = tsls(Y, X, Z)
+        coverage[7, i], interval_lengths[7, i] = check_coverage(tsls_res, true_β), tsls_res.ci[2] - tsls_res.ci[1]
+        
+        pgmm_dist = pgmm(Y, X, Z, I)
+        coverage[8, i], interval_lengths[8, i] = check_coverage(pgmm_dist, true_β), 2 * 1.96 * std(pgmm_dist)
+        
+        fit_givbma = givbma(Y, X, Z; g_prior = "hyper-g/n", iter = 1000, burn = 100)
+        givbma_dist = rbw(fit_givbma)[1]
+        coverage[9, i], interval_lengths[9, i] = check_coverage(givbma_dist, true_β), 2 * 1.96 * std(givbma_dist)
     end
 
     for i in 1:m
@@ -74,16 +122,32 @@ function run_simulation(m, n, s, R2_fs; ρ = 1/2, p = 5)
         # centre data
         Y, X = (Y .- mean(Y), X .- mean(X))
         # compute coverage
-        coverage[10, i] =  check_coverage(budgetIV(Y, X, Z, 0.0, 1), true_β) # BudgetIV with budget 0
-        coverage[11, i] =  check_coverage(budgetIV(Y, X, Z, 0.2, 1), true_β) # BudgetIV with budget 1/2
-        coverage[12, i] = check_coverage(ciiv(Y, X, Z), true_β) # CIIV
+        leaky_res = leaky_iv(Y, X, Z, 0.2)
+        coverage[10, i], interval_lengths[10, i] = check_coverage(leaky_res, true_β), leaky_res.ci[2] - leaky_res.ci[1]
+        
+        budget_0 = budgetIV(Y, X, Z, 0.0, 1)
+        coverage[11, i], interval_lengths[11, i] = check_coverage(budget_0, true_β), budget_0.ci[2] - budget_0.ci[1]
+        
+        budget_half = budgetIV(Y, X, Z, 0.2, 1)
+        coverage[12, i], interval_lengths[12, i] = check_coverage(budget_half, true_β), budget_half.ci[2] - budget_half.ci[1]
+        
+        ciiv_res = ciiv(Y, X, Z)
+        coverage[13, i], interval_lengths[13, i] = check_coverage(ciiv_res, true_β), ciiv_res[1][2] - ciiv_res[1][1]
     end
 
+    # Compute coverage rates and median interval lengths
     cover_rates = mean(coverage; dims = 2)[:, 1]
+    
+    mil = zeros(length(methods))
+    for j in 1:length(methods)
+        valid_lengths = filter(!isnan, interval_lengths[j, :])
+        mil[j] = length(valid_lengths) > 0 ? median(valid_lengths) : NaN
+    end
 
     return DataFrame(
         method = methods,
         coverage = cover_rates,
+        mil = mil,
         s = fill(s, length(methods)),
         n = fill(n, length(methods)),
         R2_fs = fill(R2_fs, length(methods))
@@ -93,19 +157,16 @@ end
 
 ## Run simulation ##
 
-
-# run simulation
 Random.seed!(42)
 results = DataFrame()
 for s in [0, 2, 3, 5]
     println("Running n=200, R2=0.15, s=$s")
-    df = run_simulation(500, 200, s, 0.15)
+    df = run_simulation(200, 200, s, 0.15)
     append!(results, df)
 end
-append!(results, run_simulation(500, 200, 5, 0.15))
 
 # run additional scenarios
-m = 200 # number of iterations in each scenario
+m = 100 # number of iterations in each scenario
 s_vals = [0, 1, 2, 3, 4, 5] # number of invalid instruments
 n_vals = [50, 500] # sample sizes
 R2_vals = [0.1, 0.25] # first-stage R^2 values
@@ -126,8 +187,6 @@ CSV.write("Multiple_Instruments_Simulation_Results.csv", results)
 
 
 # plot additional results
-
-
 results = CSV.read("Multiple_Instruments_Simulation_Results.csv", DataFrame)
 
 # Table of main text results
@@ -139,7 +198,8 @@ function df_to_latex_table(
     s_vals = sort(unique(df.s))
     methods = unique(df.method)
 
-    lookup = Dict((row.method, row.s) => row.coverage for row in eachrow(df))
+    lookup_cov = Dict((row.method, row.s) => row.coverage for row in eachrow(df))
+    lookup_mil = Dict((row.method, row.s) => row.mil for row in eachrow(df))
 
     io = IOBuffer()
 
@@ -152,7 +212,18 @@ function df_to_latex_table(
     println(io, "\\midrule")
 
     for method in methods
-        cells = [string(get(lookup, (method, s), "")) for s in s_vals]
+        cells = []
+        for s in s_vals
+            cov = get(lookup_cov, (method, s), NaN)
+            mil = get(lookup_mil, (method, s), NaN)
+            
+            if isnan(mil)
+                cell_str = @sprintf("%.3f", cov) * " [---]"
+            else
+                cell_str = @sprintf("%.3f", cov) * " [" * @sprintf("%.3f", mil) * "]"
+            end
+            push!(cells, cell_str)
+        end
         println(io, method * " & " * join(cells, " & ") * " \\\\")
     end
 
@@ -162,8 +233,9 @@ function df_to_latex_table(
 end
 
 
+bool_main = results.R2_fs .== 0.15
 df_to_latex_table(
-    results[results.R2_fs .== 0.15, :];
+    results[bool_main, :];
     caption = ""
 ) |> println
 
@@ -253,7 +325,7 @@ end
 # 5. Final Assembly
 l = @layout [
     grid(2, 2)
-    legend_area{0.175h} 
+    legend_area{0.22h} 
 ]
 
 final_plot = plot(

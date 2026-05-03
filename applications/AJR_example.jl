@@ -2,11 +2,11 @@ using CSV, DataFrames
 using Plots, LaTeXStrings, Measures
 
 # import method function
-include("PossibilisticIV.jl")
-include("competing_methods.jl")
+include("../PossibilisticIV.jl")
+include("../simulations/competing_methods.jl")
 
 # load data
-d = CSV.read("AJR_Data.csv", DataFrame)
+d = CSV.read(joinpath(@__DIR__, "AJR_Data.csv"), DataFrame)
 y_raw, x_raw, z_raw = (d.GDP, d.Exprop, d.logMort)
 W = [ones(length(y_raw)) Matrix(d[:, ["Latitude"]])]
 
@@ -68,18 +68,18 @@ savefig(p, "AJR_Possibility_Contour.pdf")
 
 # find uncertainty intervals
 using Roots
-f(r; a = 0.0) = first(possibilistic_contour([r], [-a], [a], [y x], z)) - 0.05
+
 println(
     "95%-Interval for α = 0: " *
-    string(round.((find_zero(f, 0.6), find_zero(f, 1.4)), digits = 2))
+    string(confidence_interval([-0.0], [0.0], [y x], z; level = 0.05))
 )
 println(
     "95%-Interval for A = [-0.1, 0.1]: " *
-    string(round.((find_zero(r -> f(r, a = 0.1), 0.6), find_zero(r -> f(r, a = 0.1), 1.4)), digits = 2))
+    string(confidence_interval([-0.1], [0.1], [y x], z; level = 0.05))
 )
 println(
     "95%-Interval for A = [-0.4, 0.4]: " *
-    string(round.((find_zero(r -> f(r, a = 0.4), 0.0), find_zero(r -> f(r, a = 0.4), 2.5)), digits = 2))
+    string(confidence_interval([-0.4], [0.4], [y x], z; level = 0.05))
 )
 
 
@@ -112,5 +112,3 @@ knitr::kable(
     escape = FALSE
     )
 """
-
-
